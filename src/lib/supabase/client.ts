@@ -27,10 +27,11 @@ function getClient(): SupabaseClient {
 
 // Lazy proxy: createClient is only called when a property is actually accessed,
 // NOT during module evaluation. This prevents crashes during Vercel static builds.
+// Use client (not receiver/proxy) as Reflect.get receiver so getters use the correct `this`.
 export const supabase = new Proxy({} as SupabaseClient, {
-  get(_target, prop, receiver) {
+  get(_target, prop) {
     const client = getClient();
-    const value = Reflect.get(client, prop, receiver);
+    const value = Reflect.get(client, prop, client);
     return typeof value === "function" ? value.bind(client) : value;
   },
 });

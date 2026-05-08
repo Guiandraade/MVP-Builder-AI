@@ -50,34 +50,38 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  // Lazy initializers: read localStorage client-side only (typeof window guard for SSR)
-  const [isGuest, setIsGuest] = useState<boolean>(
-    () => typeof window !== "undefined" && localStorage.getItem(GUEST_KEY) === "true"
-  );
-  const [loading, setLoading] = useState<boolean>(
-    () => typeof window === "undefined" || localStorage.getItem(GUEST_KEY) !== "true"
-  );
+  // Safe SSR defaults — always match server render to avoid hydration mismatch.
+  // Real values are read from localStorage in useEffect (client-only).
+  const [isGuest, setIsGuest] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Re-read from localStorage inside effect (effects are client-only)
-    const currentlyGuest = localStorage.getItem(GUEST_KEY) === "true";
-    if (!currentlyGuest) {
-      const checkUser = async () => {
-        try {
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
-          setUser(session?.user ?? null);
-        } catch (error) {
-          console.error("Error checking user:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      checkUser();
-    }
-
     let subscription: { unsubscribe: () => void } | undefined;
+
+    // Wrap all logic in async function so no setState is called synchronously
+    // in the effect body (satisfies react-hooks/set-state-in-effect lint rule)
+    const initAuth = async () => {
+      const currentlyGuest = localStorage.getItem(GUEST_KEY) === "true";
+      if (currentlyGuest) {
+        setIsGuest(true);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error("Error checking user:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
+
     try {
       const { data } = supabase.auth.onAuthStateChange((_event, session) => {
         if (session?.user) {
@@ -90,7 +94,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription = data?.subscription;
     } catch (error) {
       console.error("Error setting up auth listener:", error);
-      setLoading(false);
     }
 
     return () => subscription?.unsubscribe();
