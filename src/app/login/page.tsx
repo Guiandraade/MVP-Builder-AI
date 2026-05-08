@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
-import { Sparkles } from "lucide-react";
 
 function GitHubIcon() {
   return (
@@ -97,20 +96,20 @@ export default function LoginPage() {
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <div className="brand-gradient flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg">
-            <Sparkles className="h-7 w-7 text-white" />
+          <div className="brand-gradient flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg text-white text-xl select-none">
+            ✦
           </div>
           <div>
             <div className="text-2xl font-semibold tracking-tight">MVP Builder AI</div>
             <div
-              className="mt-0.5 text-[11px] uppercase tracking-[0.15em]"
-              style={{ color: "hsl(239 84% 67%)" }}
+              className="mt-1 text-sm"
+              style={{ color: "hsl(240 5% 50%)" }}
             >
-              Architect Mode
+              Arquitete seu próximo produto com IA
             </div>
           </div>
-          <p className="mt-1 text-sm" style={{ color: "hsl(240 5% 50%)" }}>
-            Transforme ideias em arquitetura tecnica executavel.
+          <p className="mt-2 text-sm" style={{ color: "hsl(240 5% 48%)" }}>
+            Stack, roadmap e arquitetura tecnica para sair do zero ao MVP.
           </p>
         </div>
 
@@ -118,9 +117,7 @@ export default function LoginPage() {
           className="rounded-2xl border p-6"
           style={{ background: "var(--surface-1)", borderColor: "hsl(240 10% 16%)" }}
         >
-          <p className="mb-4 text-center text-xs font-medium uppercase tracking-widest" style={{ color: "hsl(240 5% 45%)" }}>
-            Entrar com
-          </p>
+          <p className="mb-5 text-center text-sm font-medium" style={{ color: "hsl(240 5% 50%)" }}>Entre para começar</p>
 
           <div className="space-y-3">
             <button

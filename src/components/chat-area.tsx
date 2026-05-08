@@ -10,7 +10,7 @@ import { MessageSkeleton } from "@/components/ui/skeleton";
 import { generateAiResponse } from "@/lib/mock-ai";
 import { generateTitle } from "@/lib/auto-title";
 import { cn } from "@/lib/utils";
-import { Sparkles, Workflow, ShieldCheck, Pin, Menu } from "lucide-react";
+import { Pin, Menu } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 
 interface ChatAreaProps {
@@ -147,7 +147,7 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
             <span
               className="hidden items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-wider md:inline-flex"
               style={{
-                borderColor: "hsl(239 84% 67% / 0.2)",
+                borderColor: "hsl(239 84% 67% / 0.15)",
                 color: "hsl(239 84% 67%)",
                 background: "hsl(239 84% 67% / 0.06)",
               }}
@@ -156,15 +156,7 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
               Conversa ativa
             </span>
           )}
-          <span
-            className="hidden items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-wider md:inline-flex"
-            style={{
-              borderColor: "hsl(240 10% 16%)",
-              color: "hsl(240 5% 45%)",
-            }}
-          >
-            <Sparkles className="h-2.5 w-2.5" /> IA Assistida
-          </span>
+
         </div>
       </div>
 
@@ -179,58 +171,50 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
             transition={{ duration: 0.2 }}
             className="flex flex-1 items-center justify-center p-6"
           >
-            <div className="w-full max-w-2xl space-y-6">
-              <div className="space-y-2 text-center">
+            <div className="w-full max-w-xl">
+              <div className="mb-10 text-center">
                 <div
-                  className="brand-gradient mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg"
+                  className="mx-auto mb-5 h-10 w-10 rounded-2xl flex items-center justify-center text-lg select-none"
+                  style={{ background: "hsl(239 84% 67% / 0.12)", border: "1px solid hsl(239 84% 67% / 0.2)", color: "hsl(239 84% 67%)" }}
                 >
-                  <Sparkles className="h-6 w-6 text-white" />
+                  ✦
                 </div>
-                <h2 className="text-2xl font-semibold">Pronto para arquitetar</h2>
-                <p style={{ color: "hsl(240 5% 55%)" }} className="text-sm">
-                  Descreva sua ideia e receba estratégia técnica detalhada, stack recomendada e roadmap executável.
+                <h2 className="text-2xl font-semibold tracking-tight">O que você está construindo?</h2>
+                <p className="mt-2 text-sm" style={{ color: "hsl(240 5% 50%)" }}>
+                  Descreva sua ideia — receba arquitetura, stack e roadmap sob medida.
                 </p>
               </div>
 
-              <div className="grid gap-2 md:grid-cols-3">
-                {starterPrompts.map((prompt) => (
+              <div className="space-y-2">
+                {starterPrompts.map((prompt, i) => (
                   <button
                     key={prompt}
                     onClick={() => handleSendMessage(prompt)}
-                    className="rounded-xl border p-3 cursor-pointer text-left text-sm transition-all hover:scale-[1.01]"
+                    className="group flex w-full cursor-pointer items-start gap-3 rounded-xl border px-4 py-3.5 text-left text-sm transition-all"
                     style={{
                       borderColor: "hsl(240 10% 16%)",
                       background: "var(--surface-1)",
-                      color: "hsl(240 5% 70%)",
+                      color: "hsl(240 5% 72%)",
                     }}
                     onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(239 84% 67% / 0.4)";
-                      (e.currentTarget as HTMLButtonElement).style.color = "hsl(240 5% 90%)";
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(239 84% 67% / 0.3)";
+                      (e.currentTarget as HTMLButtonElement).style.background = "hsl(239 84% 67% / 0.04)";
+                      (e.currentTarget as HTMLButtonElement).style.color = "hsl(240 5% 92%)";
                     }}
                     onMouseLeave={(e) => {
                       (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(240 10% 16%)";
-                      (e.currentTarget as HTMLButtonElement).style.color = "hsl(240 5% 70%)";
+                      (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-1)";
+                      (e.currentTarget as HTMLButtonElement).style.color = "hsl(240 5% 72%)";
                     }}
                   >
-                    {prompt}
+                    <span
+                      className="mt-0.5 shrink-0 text-[10px] font-mono tabular-nums"
+                      style={{ color: "hsl(239 84% 67% / 0.5)" }}
+                    >
+                      0{i + 1}
+                    </span>
+                    <span className="flex-1">{prompt}</span>
                   </button>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { icon: Workflow, label: "Planejamento por fases", color: "hsl(239 84% 67%)" },
-                  { icon: Sparkles, label: "Stack recomendada", color: "hsl(192 91% 43%)" },
-                  { icon: ShieldCheck, label: "Mitigação de riscos", color: "hsl(24 95% 53%)" },
-                ].map(({ icon: Icon, label, color }) => (
-                  <div
-                    key={label}
-                    className="rounded-xl border p-3 text-xs"
-                    style={{ borderColor: "hsl(240 10% 16%)", background: "var(--surface-1)", color: "hsl(240 5% 55%)" }}
-                  >
-                    <Icon className="mb-2 h-4 w-4" style={{ color }} />
-                    {label}
-                  </div>
                 ))}
               </div>
             </div>
@@ -258,11 +242,14 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
                       <ChatMessage key={message.id} message={message} />
                     ))}
                     {isReplying && (
-                      <div className="flex gap-3 px-4 py-2 md:px-6">
-                        <div className="brand-gradient mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[9px] font-bold text-white">
-                          AI
+                      <div className="flex items-start gap-3 px-4 py-3 md:px-6">
+                        <div
+                          className="mt-0.5 h-6 w-6 shrink-0 rounded-full flex items-center justify-center text-[11px] font-semibold select-none"
+                          style={{ background: "hsl(239 84% 67% / 0.12)", color: "hsl(239 84% 67%)", border: "1px solid hsl(239 84% 67% / 0.2)" }}
+                        >
+                          ✦
                         </div>
-                        <div className="flex items-center gap-1.5 pt-1">
+                        <div className="flex items-center gap-1.5 pt-1.5">
                           {[0, 0.15, 0.3].map((delay) => (
                             <motion.span
                               key={delay}
