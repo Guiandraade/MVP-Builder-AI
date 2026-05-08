@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  // next=/update-password for password-reset flow, / for normal login/signup
   const next = searchParams.get("next") ?? "/";
 
   if (code) {

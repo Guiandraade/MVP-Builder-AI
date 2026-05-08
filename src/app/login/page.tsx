@@ -51,9 +51,9 @@ const STRENGTH_COLORS = ["", "hsl(0 72% 51%)", "hsl(38 92% 50%)", "hsl(142 71% 4
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, signUp, signInAsGuest, user, isGuest, loading } = useAuth();
+  const { signIn, signUp, sendPasswordResetEmail, signInAsGuest, user, isGuest, loading } = useAuth();
 
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -92,7 +92,7 @@ export default function LoginPage() {
 
   if (user || isGuest) return null;
 
-  const switchMode = (next: "login" | "signup") => {
+  const switchMode = (next: "login" | "signup" | "forgot") => {
     setMode(next);
     setError("");
     setSuccessMsg("");
@@ -108,6 +108,20 @@ export default function LoginPage() {
     setSuccessMsg("");
 
     if (!email.trim()) { setError("Digite seu e-mail."); return; }
+
+    if (mode === "forgot") {
+      setSubmitting(true);
+      try {
+        await sendPasswordResetEmail(email.trim());
+        setSuccessMsg("E-mail enviado! Verifique sua caixa de entrada e clique no link para redefinir sua senha.");
+      } catch (err) {
+        setError((err as Error).message);
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     if (!password) { setError("Digite sua senha."); return; }
 
     if (mode === "signup") {
@@ -261,36 +275,40 @@ export default function LoginPage() {
           {/* Desktop header */}
           <div className="mb-6 hidden lg:block">
             <h2 className="text-2xl font-semibold tracking-tight">
-              {mode === "login" ? "Entrar na conta" : "Criar conta"}
+              {mode === "login" ? "Entrar na conta" : mode === "signup" ? "Criar conta" : "Redefinir senha"}
             </h2>
             <p className="mt-1.5 text-sm" style={{ color: "hsl(240 5% 48%)" }}>
               {mode === "login"
                 ? "Bem-vindo de volta. Digite suas credenciais."
-                : "Crie sua conta para salvar seu histórico e projetos."}
+                : mode === "signup"
+                ? "Crie sua conta para salvar seu histórico e projetos."
+                : "Informe seu e-mail e enviaremos um link para redefinir."}
             </p>
           </div>
 
-          {/* Tab switcher */}
-          <div
-            className="mb-5 flex rounded-xl p-1"
-            style={{ background: "hsl(240 10% 10%)", border: "1px solid hsl(240 10% 16%)" }}
-          >
-            {(["login", "signup"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => switchMode(tab)}
-                className="flex-1 rounded-lg py-2 text-sm font-medium transition-all"
-                style={{
-                  background: mode === tab ? "hsl(239 84% 67% / 0.18)" : "transparent",
-                  color: mode === tab ? "hsl(239 84% 75%)" : "hsl(240 5% 50%)",
-                  border: mode === tab ? "1px solid hsl(239 84% 67% / 0.3)" : "1px solid transparent",
-                  cursor: "pointer",
-                }}
-              >
-                {tab === "login" ? "Entrar" : "Criar conta"}
-              </button>
-            ))}
-          </div>
+          {/* Tab switcher — hidden on forgot mode */}
+          {mode !== "forgot" && (
+            <div
+              className="mb-5 flex rounded-xl p-1"
+              style={{ background: "hsl(240 10% 10%)", border: "1px solid hsl(240 10% 16%)" }}
+            >
+              {(["login", "signup"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => switchMode(tab)}
+                  className="flex-1 rounded-lg py-2 text-sm font-medium transition-all"
+                  style={{
+                    background: mode === tab ? "hsl(239 84% 67% / 0.18)" : "transparent",
+                    color: mode === tab ? "hsl(239 84% 75%)" : "hsl(240 5% 50%)",
+                    border: mode === tab ? "1px solid hsl(239 84% 67% / 0.3)" : "1px solid transparent",
+                    cursor: "pointer",
+                  }}
+                >
+                  {tab === "login" ? "Entrar" : "Criar conta"}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Card */}
           <div
@@ -327,6 +345,14 @@ export default function LoginPage() {
                   className="space-y-4"
                   noValidate
                 >
+                  {/* Forgot-password header inside card */}
+                  {mode === "forgot" && (
+                    <div>
+                      <p className="text-sm font-medium" style={{ color: "hsl(240 5% 88%)" }}>Redefinir senha</p>
+                      <p className="mt-1 text-xs" style={{ color: "hsl(240 5% 50%)" }}>Informe seu e-mail e enviaremos um link de redefinição.</p>
+                    </div>
+                  )}
+
                   {/* Email */}
                   <div>
                     <label className="mb-1.5 block text-xs font-medium" style={{ color: "hsl(240 5% 65%)" }}>
@@ -344,7 +370,8 @@ export default function LoginPage() {
                     />
                   </div>
 
-                  {/* Password */}
+                  {/* Password — hidden on forgot mode */}
+                  {mode !== "forgot" && (
                   <div>
                     <label className="mb-1.5 block text-xs font-medium" style={{ color: "hsl(240 5% 65%)" }}>
                       Senha
@@ -410,7 +437,9 @@ export default function LoginPage() {
                         </div>
                       </motion.div>
                     )}
-                  </div>
+
+                    </div>
+                    )}
 
                   {/* Confirm password — signup only */}
                   {mode === "signup" && (
@@ -487,19 +516,42 @@ export default function LoginPage() {
                     {submitting ? (
                       <>
                         <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                        {mode === "login" ? "Entrando..." : "Criando conta..."}
+                        {mode === "login" ? "Entrando..." : mode === "signup" ? "Criando conta..." : "Enviando..."}
                       </>
                     ) : (
-                      mode === "login" ? "Entrar" : "Criar conta"
+                      mode === "login" ? "Entrar" : mode === "signup" ? "Criar conta" : "Enviar link de redefinição"
                     )}
                   </button>
+
+                  {/* Back to login — forgot mode */}
+                  {mode === "forgot" && (
+                    <button
+                      type="button"
+                      onClick={() => switchMode("login")}
+                      className="w-full text-center text-xs"
+                      style={{ color: "hsl(240 5% 45%)", background: "none", border: "none", cursor: "pointer" }}
+                    >
+                      ← Voltar para o login
+                    </button>
+                  )}
                 </motion.form>
               )}
             </AnimatePresence>
           </div>
 
-          {/* Guest link */}
-          <div className="mt-5 text-center">
+          {/* Footer links */}
+          <div className="mt-5 flex flex-col items-center gap-2 text-center">
+            {mode === "login" && (
+              <button
+                onClick={() => switchMode("forgot")}
+                className="text-xs transition-colors"
+                style={{ color: "hsl(240 5% 38%)", background: "none", border: "none", cursor: "pointer" }}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "hsl(240 5% 60%)")}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "hsl(240 5% 38%)")}
+              >
+                Esqueci minha senha
+              </button>
+            )}
             <button
               onClick={signInAsGuest}
               className="text-sm transition-colors"

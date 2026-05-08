@@ -22,6 +22,8 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
   signInAsGuest: () => void;
   signOut: () => Promise<void>;
 }
@@ -87,6 +89,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsGuest(true);
   };
 
+  const sendPasswordResetEmail = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/update-password`,
+    });
+    if (error) throw new Error(normalizeAuthError(error));
+  };
+
+  const updatePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw new Error(normalizeAuthError(error));
+  };
+
   const signOut = async () => {
     localStorage.removeItem(GUEST_KEY);
     setIsGuest(false);
@@ -95,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isGuest, loading, signIn, signUp, signInAsGuest, signOut }}>
+    <AuthContext.Provider value={{ user, isGuest, loading, signIn, signUp, sendPasswordResetEmail, updatePassword, signInAsGuest, signOut }}>
       {children}
     </AuthContext.Provider>
   );
