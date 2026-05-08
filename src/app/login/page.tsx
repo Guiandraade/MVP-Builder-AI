@@ -2,28 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Zap, GitBranch, BarChart3 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Zap, GitBranch, BarChart3, Eye, EyeOff, Check, X } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-
-function GitHubIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222 0 1.606-.015 2.896-.015 3.286 0 .322.216.694.825.576C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z" />
-    </svg>
-  );
-}
-
-function GoogleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
-      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-    </svg>
-  );
-}
 
 const FEATURES = [
   {
@@ -52,26 +33,44 @@ const fadeUp = {
   }),
 };
 
+type Rule = { label: string; test: (pw: string) => boolean };
+
+const PASSWORD_RULES: Rule[] = [
+  { label: "Mínimo 8 caracteres", test: (pw) => pw.length >= 8 },
+  { label: "Uma letra maiúscula", test: (pw) => /[A-Z]/.test(pw) },
+  { label: "Um número", test: (pw) => /[0-9]/.test(pw) },
+  { label: "Um caractere especial (!@#$...)", test: (pw) => /[^A-Za-z0-9]/.test(pw) },
+];
+
+function passwordStrength(pw: string): number {
+  return PASSWORD_RULES.filter((r) => r.test(pw)).length;
+}
+
+const STRENGTH_LABELS = ["", "Fraca", "Razoável", "Boa", "Forte"];
+const STRENGTH_COLORS = ["", "hsl(0 72% 51%)", "hsl(38 92% 50%)", "hsl(142 71% 45%)", "hsl(142 71% 45%)"];
+
 export default function LoginPage() {
   const router = useRouter();
-  const { signInWithGoogle, signInWithGithub, signInAsGuest, user, isGuest, loading } = useAuth();
-  const [socialLoading, setSocialLoading] = useState<"google" | "github" | null>(null);
+  const { signIn, signUp, signInAsGuest, user, isGuest, loading } = useAuth();
 
-  const getInitialError = () => {
-    if (typeof window === "undefined") return "";
-    const params = new URLSearchParams(window.location.search);
-    const authErr = params.get("authError");
-    if (!authErr) return "";
-    const decoded = decodeURIComponent(authErr);
-    return /provider is not enabled|unsupported provider/i.test(decoded)
-      ? "Provedor não habilitado. Configure em: Supabase > Authentication > Providers."
-      : decoded;
-  };
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
 
-  const [error, setError] = useState(getInitialError);
+  const pwStrength = passwordStrength(password);
+  const passwordTouched = password.length > 0;
 
   useEffect(() => {
-    if (window.location.search.includes("authError")) {
+    if (typeof window !== "undefined" && window.location.search.includes("authError")) {
+      const params = new URLSearchParams(window.location.search);
+      const msg = params.get("authError") ?? "";
+      setError(decodeURIComponent(msg));
       window.history.replaceState({}, "", "/login");
     }
   }, []);
@@ -93,29 +92,59 @@ export default function LoginPage() {
 
   if (user || isGuest) return null;
 
-  const handleGoogle = async () => {
+  const switchMode = (next: "login" | "signup") => {
+    setMode(next);
     setError("");
-    setSocialLoading("google");
+    setSuccessMsg("");
+    setPassword("");
+    setConfirmPassword("");
+    setShowPassword(false);
+    setShowConfirm(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccessMsg("");
+
+    if (!email.trim()) { setError("Digite seu e-mail."); return; }
+    if (!password) { setError("Digite sua senha."); return; }
+
+    if (mode === "signup") {
+      if (pwStrength < 4) { setError("Sua senha não atende todos os critérios de segurança."); return; }
+      if (password !== confirmPassword) { setError("As senhas não coincidem."); return; }
+    }
+
+    setSubmitting(true);
     try {
-      await signInWithGoogle();
+      if (mode === "login") {
+        await signIn(email.trim(), password);
+      } else {
+        const { needsConfirmation } = await signUp(email.trim(), password);
+        if (needsConfirmation) {
+          setSuccessMsg("Conta criada! Verifique seu e-mail para confirmar antes de entrar.");
+          setPassword("");
+          setConfirmPassword("");
+        }
+      }
     } catch (err) {
-      setError((err as Error).message || "Erro ao entrar com Google");
-      setSocialLoading(null);
+      setError((err as Error).message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleGithub = async () => {
-    setError("");
-    setSocialLoading("github");
-    try {
-      await signInWithGithub();
-    } catch (err) {
-      setError((err as Error).message || "Erro ao entrar com GitHub");
-      setSocialLoading(null);
-    }
+  const inputStyle: React.CSSProperties = {
+    background: "var(--surface-2)",
+    border: "1px solid hsl(240 10% 20%)",
+    borderRadius: "0.75rem",
+    color: "hsl(240 5% 90%)",
+    fontSize: "0.9rem",
+    padding: "0.7rem 0.9rem",
+    width: "100%",
+    outline: "none",
+    transition: "border-color 0.15s",
   };
-
-  const isLoading = !!socialLoading;
 
   return (
     <div className="flex min-h-dvh" style={{ background: "var(--background)" }}>
@@ -123,12 +152,8 @@ export default function LoginPage() {
       {/* ── Left hero panel (desktop only) ────────────────────────────── */}
       <div
         className="relative hidden overflow-hidden lg:flex lg:w-[52%] lg:flex-col lg:justify-between lg:p-14"
-        style={{
-          background: "var(--surface-1)",
-          borderRight: "1px solid hsl(240 10% 13%)",
-        }}
+        style={{ background: "var(--surface-1)", borderRight: "1px solid hsl(240 10% 13%)" }}
       >
-        {/* Ambient glows */}
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -136,7 +161,6 @@ export default function LoginPage() {
               "radial-gradient(ellipse at 20% 15%, hsl(239 84% 67% / 0.18) 0%, transparent 55%), radial-gradient(ellipse at 85% 85%, hsl(192 91% 43% / 0.12) 0%, transparent 50%)",
           }}
         />
-        {/* Subtle grid */}
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -146,7 +170,6 @@ export default function LoginPage() {
           }}
         />
 
-        {/* Brand */}
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -159,7 +182,6 @@ export default function LoginPage() {
           <span className="text-sm font-semibold tracking-tight">MVP Builder AI</span>
         </motion.div>
 
-        {/* Headline + features */}
         <motion.div
           initial={{ opacity: 0, y: 28 }}
           animate={{ opacity: 1, y: 0 }}
@@ -173,11 +195,7 @@ export default function LoginPage() {
             Construa seu{" "}
             <span
               className="brand-gradient"
-              style={{
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
+              style={{ WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
             >
               próximo produto
             </span>
@@ -199,27 +217,19 @@ export default function LoginPage() {
               >
                 <div
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-                  style={{
-                    background: "hsl(239 84% 67% / 0.1)",
-                    border: "1px solid hsl(239 84% 67% / 0.18)",
-                  }}
+                  style={{ background: "hsl(239 84% 67% / 0.1)", border: "1px solid hsl(239 84% 67% / 0.18)" }}
                 >
                   <f.Icon className="h-4 w-4" style={{ color: "hsl(239 84% 70%)" }} />
                 </div>
                 <div>
-                  <div className="mb-0.5 text-sm font-medium" style={{ color: "hsl(240 5% 88%)" }}>
-                    {f.title}
-                  </div>
-                  <div className="text-[0.8rem] leading-relaxed" style={{ color: "hsl(240 5% 48%)" }}>
-                    {f.desc}
-                  </div>
+                  <div className="mb-0.5 text-sm font-medium" style={{ color: "hsl(240 5% 88%)" }}>{f.title}</div>
+                  <div className="text-[0.8rem] leading-relaxed" style={{ color: "hsl(240 5% 48%)" }}>{f.desc}</div>
                 </div>
               </motion.div>
             ))}
           </div>
         </motion.div>
 
-        {/* Footer */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -239,25 +249,47 @@ export default function LoginPage() {
           transition={{ duration: 0.55, ease: "easeOut" }}
           className="w-full max-w-sm"
         >
-          {/* Mobile logo — hidden on desktop */}
+          {/* Mobile logo */}
           <div className="mb-8 flex flex-col items-center gap-3 text-center lg:hidden">
-            <div className="brand-gradient flex h-12 w-12 select-none items-center justify-center rounded-2xl text-xl text-white shadow-lg">
-              ✦
-            </div>
+            <div className="brand-gradient flex h-12 w-12 select-none items-center justify-center rounded-2xl text-xl text-white shadow-lg">✦</div>
             <div>
               <div className="text-2xl font-semibold tracking-tight">MVP Builder AI</div>
-              <div className="mt-1 text-sm" style={{ color: "hsl(240 5% 48%)" }}>
-                Arquitete seu próximo produto com IA
-              </div>
+              <div className="mt-1 text-sm" style={{ color: "hsl(240 5% 48%)" }}>Arquitete seu próximo produto com IA</div>
             </div>
           </div>
 
-          {/* Desktop welcome header — hidden on mobile */}
-          <div className="mb-8 hidden lg:block">
-            <h2 className="text-2xl font-semibold tracking-tight">Bem-vindo</h2>
+          {/* Desktop header */}
+          <div className="mb-6 hidden lg:block">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {mode === "login" ? "Entrar na conta" : "Criar conta"}
+            </h2>
             <p className="mt-1.5 text-sm" style={{ color: "hsl(240 5% 48%)" }}>
-              Entre para salvar seu histórico e projetos.
+              {mode === "login"
+                ? "Bem-vindo de volta. Digite suas credenciais."
+                : "Crie sua conta para salvar seu histórico e projetos."}
             </p>
+          </div>
+
+          {/* Tab switcher */}
+          <div
+            className="mb-5 flex rounded-xl p-1"
+            style={{ background: "hsl(240 10% 10%)", border: "1px solid hsl(240 10% 16%)" }}
+          >
+            {(["login", "signup"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => switchMode(tab)}
+                className="flex-1 rounded-lg py-2 text-sm font-medium transition-all"
+                style={{
+                  background: mode === tab ? "hsl(239 84% 67% / 0.18)" : "transparent",
+                  color: mode === tab ? "hsl(239 84% 75%)" : "hsl(240 5% 50%)",
+                  border: mode === tab ? "1px solid hsl(239 84% 67% / 0.3)" : "1px solid transparent",
+                  cursor: "pointer",
+                }}
+              >
+                {tab === "login" ? "Entrar" : "Criar conta"}
+              </button>
+            ))}
           </div>
 
           {/* Card */}
@@ -265,104 +297,219 @@ export default function LoginPage() {
             className="rounded-2xl border p-6"
             style={{ background: "var(--surface-1)", borderColor: "hsl(240 10% 16%)" }}
           >
-            <div className="space-y-3">
-              <button
-                onClick={handleGoogle}
-                disabled={isLoading}
-                className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-xl border py-3 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50"
-                style={{
-                  borderColor: "hsl(240 10% 20%)",
-                  background: "var(--surface-2)",
-                  color: "hsl(240 5% 85%)",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isLoading) {
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(240 10% 30%)";
-                    (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-3)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(240 10% 20%)";
-                  (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-2)";
-                }}
-              >
-                <GoogleIcon />
-                {socialLoading === "google" ? "Redirecionando..." : "Continuar com Google"}
-              </button>
+            <AnimatePresence mode="wait">
+              {successMsg ? (
+                <motion.div
+                  key="success"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="rounded-xl p-4 text-sm text-center"
+                  style={{ background: "hsl(142 71% 45% / 0.1)", border: "1px solid hsl(142 71% 45% / 0.3)", color: "hsl(142 71% 60%)" }}
+                >
+                  {successMsg}
+                  <button
+                    className="mt-3 block w-full text-xs underline"
+                    style={{ color: "hsl(240 5% 55%)", background: "none", border: "none", cursor: "pointer" }}
+                    onClick={() => { setSuccessMsg(""); switchMode("login"); }}
+                  >
+                    Ir para o login
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.form
+                  key={mode}
+                  initial={{ opacity: 0, x: mode === "login" ? -12 : 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: mode === "login" ? 12 : -12 }}
+                  transition={{ duration: 0.2 }}
+                  onSubmit={handleSubmit}
+                  className="space-y-4"
+                  noValidate
+                >
+                  {/* Email */}
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium" style={{ color: "hsl(240 5% 65%)" }}>
+                      E-mail
+                    </label>
+                    <input
+                      type="email"
+                      autoComplete="email"
+                      placeholder="seu@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      style={inputStyle}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = "hsl(239 84% 67% / 0.6)")}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = "hsl(240 10% 20%)")}
+                    />
+                  </div>
 
-              <button
-                onClick={handleGithub}
-                disabled={isLoading}
-                className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-xl border py-3 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50"
-                style={{
-                  borderColor: "hsl(240 10% 20%)",
-                  background: "var(--surface-2)",
-                  color: "hsl(240 5% 85%)",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isLoading) {
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(240 10% 30%)";
-                    (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-3)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(240 10% 20%)";
-                  (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-2)";
-                }}
-              >
-                <GitHubIcon />
-                {socialLoading === "github" ? "Redirecionando..." : "Continuar com GitHub"}
-              </button>
-            </div>
+                  {/* Password */}
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium" style={{ color: "hsl(240 5% 65%)" }}>
+                      Senha
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        autoComplete={mode === "login" ? "current-password" : "new-password"}
+                        placeholder={mode === "signup" ? "Crie uma senha segura" : "Sua senha"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        style={{ ...inputStyle, paddingRight: "2.5rem" }}
+                        onFocus={(e) => (e.currentTarget.style.borderColor = "hsl(239 84% 67% / 0.6)")}
+                        onBlur={(e) => (e.currentTarget.style.borderColor = "hsl(240 10% 20%)")}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2"
+                        style={{ color: "hsl(240 5% 45%)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                        tabIndex={-1}
+                        aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
 
-            {error && (
-              <div
-                className="mt-4 rounded-xl border p-3 text-xs"
-                style={{
-                  borderColor: "hsl(0 72% 51% / 0.25)",
-                  background: "hsl(0 72% 51% / 0.07)",
-                  color: "hsl(0 72% 60%)",
-                }}
-              >
-                {error}
-              </div>
-            )}
+                    {/* Password strength — only on signup */}
+                    {mode === "signup" && passwordTouched && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="mt-3 space-y-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-1 gap-1">
+                            {[1, 2, 3, 4].map((n) => (
+                              <div
+                                key={n}
+                                className="h-1 flex-1 rounded-full transition-all duration-300"
+                                style={{ background: pwStrength >= n ? STRENGTH_COLORS[pwStrength] : "hsl(240 10% 20%)" }}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-[11px] font-medium" style={{ color: STRENGTH_COLORS[pwStrength] || "hsl(240 5% 40%)", minWidth: 48, textAlign: "right" }}>
+                            {STRENGTH_LABELS[pwStrength] || ""}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          {PASSWORD_RULES.map((rule) => {
+                            const ok = rule.test(password);
+                            return (
+                              <div key={rule.label} className="flex items-center gap-1.5">
+                                {ok
+                                  ? <Check size={11} style={{ color: "hsl(142 71% 45%)", flexShrink: 0 }} />
+                                  : <X size={11} style={{ color: "hsl(240 5% 38%)", flexShrink: 0 }} />}
+                                <span className="text-[11px]" style={{ color: ok ? "hsl(142 71% 55%)" : "hsl(240 5% 45%)" }}>
+                                  {rule.label}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
 
-            <div className="my-5 flex items-center gap-3">
-              <div className="h-px flex-1" style={{ background: "hsl(240 10% 18%)" }} />
-              <span className="text-[11px]" style={{ color: "hsl(240 5% 38%)" }}>ou</span>
-              <div className="h-px flex-1" style={{ background: "hsl(240 10% 18%)" }} />
-            </div>
+                  {/* Confirm password — signup only */}
+                  {mode === "signup" && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                    >
+                      <label className="mb-1.5 block text-xs font-medium" style={{ color: "hsl(240 5% 65%)" }}>
+                        Confirmar senha
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showConfirm ? "text" : "password"}
+                          autoComplete="new-password"
+                          placeholder="Repita a senha"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          style={{
+                            ...inputStyle,
+                            paddingRight: "2.5rem",
+                            borderColor:
+                              confirmPassword.length > 0
+                                ? password === confirmPassword
+                                  ? "hsl(142 71% 45% / 0.6)"
+                                  : "hsl(0 72% 51% / 0.6)"
+                                : "hsl(240 10% 20%)",
+                          }}
+                          onFocus={(e) => (e.currentTarget.style.borderColor = "hsl(239 84% 67% / 0.6)")}
+                          onBlur={(e) => {
+                            e.currentTarget.style.borderColor =
+                              confirmPassword.length > 0
+                                ? password === confirmPassword
+                                  ? "hsl(142 71% 45% / 0.6)"
+                                  : "hsl(0 72% 51% / 0.6)"
+                                : "hsl(240 10% 20%)";
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirm((v) => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2"
+                          style={{ color: "hsl(240 5% 45%)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                          tabIndex={-1}
+                          aria-label={showConfirm ? "Ocultar senha" : "Mostrar senha"}
+                        >
+                          {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
 
-            <button
-              type="button"
-              onClick={signInAsGuest}
-              disabled={isLoading}
-              className="w-full cursor-pointer rounded-xl border py-2.5 text-sm transition-all disabled:cursor-not-allowed disabled:opacity-50"
-              style={{
-                borderColor: "hsl(240 10% 16%)",
-                background: "transparent",
-                color: "hsl(240 5% 45%)",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = "hsl(240 5% 65%)";
-                (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(240 10% 24%)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = "hsl(240 5% 45%)";
-                (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(240 10% 16%)";
-              }}
-            >
-              Explorar sem conta
-            </button>
-            <p className="mt-2 text-center text-[11px]" style={{ color: "hsl(240 5% 32%)" }}>
-              Sem login, o histórico não é salvo.
-            </p>
+                  {/* Error */}
+                  {error && (
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="rounded-xl px-3 py-2.5 text-xs"
+                      style={{ background: "hsl(0 72% 51% / 0.1)", border: "1px solid hsl(0 72% 51% / 0.25)", color: "hsl(0 72% 65%)" }}
+                    >
+                      {error}
+                    </motion.p>
+                  )}
+
+                  {/* Submit */}
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{ background: "hsl(239 84% 67%)", color: "#fff" }}
+                    onMouseEnter={(e) => { if (!submitting) (e.currentTarget as HTMLButtonElement).style.background = "hsl(239 84% 60%)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "hsl(239 84% 67%)"; }}
+                  >
+                    {submitting ? (
+                      <>
+                        <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        {mode === "login" ? "Entrando..." : "Criando conta..."}
+                      </>
+                    ) : (
+                      mode === "login" ? "Entrar" : "Criar conta"
+                    )}
+                  </button>
+                </motion.form>
+              )}
+            </AnimatePresence>
           </div>
 
-          <p className="mt-6 text-center text-[11px]" style={{ color: "hsl(240 5% 28%)" }}>
-            Ao entrar, você concorda com os termos de uso.
-          </p>
+          {/* Guest link */}
+          <div className="mt-5 text-center">
+            <button
+              onClick={signInAsGuest}
+              className="text-sm transition-colors"
+              style={{ color: "hsl(240 5% 42%)", background: "none", border: "none", cursor: "pointer" }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "hsl(240 5% 65%)")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "hsl(240 5% 42%)")}
+            >
+              Continuar sem conta
+            </button>
+          </div>
         </motion.div>
       </div>
     </div>
