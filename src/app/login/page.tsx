@@ -54,7 +54,7 @@ const fadeUp = {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signInWithGoogle, signInWithGithub, signInAsGuest, user, isGuest } = useAuth();
+  const { signInWithGoogle, signInWithGithub, signInAsGuest, user, isGuest, loading } = useAuth();
   const [socialLoading, setSocialLoading] = useState<"google" | "github" | null>(null);
 
   const getInitialError = () => {
@@ -77,8 +77,19 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
-    if (user || isGuest) router.push("/");
-  }, [user, isGuest, router]);
+    if (!loading && (user || isGuest)) router.replace("/");
+  }, [user, isGuest, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center" style={{ background: "var(--background)" }}>
+        <div className="flex items-center gap-2 text-sm" style={{ color: "hsl(240 5% 45%)" }}>
+          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          Carregando...
+        </div>
+      </div>
+    );
+  }
 
   if (user || isGuest) return null;
 

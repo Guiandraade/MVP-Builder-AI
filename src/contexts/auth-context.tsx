@@ -58,42 +58,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | undefined;
 
-    // Wrap all logic in async function so no setState is called synchronously
-    // in the effect body (satisfies react-hooks/set-state-in-effect lint rule)
-    const initAuth = async () => {
-      const currentlyGuest = localStorage.getItem(GUEST_KEY) === "true";
-      if (currentlyGuest) {
-        setIsGuest(true);
-        setLoading(false);
-        return;
-      }
+    // Guest mode — skip Supabase entirely
+    const currentlyGuest = localStorage.getItem(GUEST_KEY) === "true";
+    if (currentlyGuest) {
+      setIsGuest(true);
+      setLoading(false);
+      return;
+    }
 
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
-      } catch (error) {
-        console.error("Error checking user:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initAuth();
-
+    // Use onAuthStateChange as sole source of truth.
+    // It fires INITIAL_SESSION on setup, then for every subsequent change.
     try {
       const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+
         if (session?.user) {
           localStorage.removeItem(GUEST_KEY);
           setIsGuest(false);
-          setLoading(false);
         }
-        setUser(session?.user ?? null);
+
+        // Always mark loading done — whether session exists or not
+        setLoading(false);
       });
       subscription = data?.subscription;
     } catch (error) {
       console.error("Error setting up auth listener:", error);
+      setLoading(false);
     }
 
     return () => subscription?.unsubscribe();

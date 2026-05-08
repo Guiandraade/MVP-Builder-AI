@@ -20,7 +20,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!loading && !user && !isGuest) {
-      router.push("/login");
+      router.replace("/login");
     }
   }, [user, isGuest, loading, router]);
 
