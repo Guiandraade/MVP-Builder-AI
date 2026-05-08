@@ -89,6 +89,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     });
     if (error) throw new Error(normalizeAuthError(error));
+
+    // Supabase can return an obfuscated user (identities = []) for existing emails
+    // when email confirmation is enabled, instead of returning an explicit error.
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      throw new Error("Este e-mail já está cadastrado. Faça login.");
+    }
+
     // If session is null after signup, email confirmation is pending
     const needsConfirmation = !data.session;
     return { needsConfirmation };
