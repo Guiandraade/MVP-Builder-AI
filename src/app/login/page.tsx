@@ -48,7 +48,7 @@ const fadeUp = {
   show: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: 0.15 + i * 0.1, duration: 0.55, ease: [0.16, 1, 0.3, 1] },
+    transition: { delay: 0.15 + i * 0.1, duration: 0.55, ease: "easeOut" as const },
   }),
 };
 
@@ -152,7 +152,7 @@ export default function LoginPage() {
         <motion.div
           initial={{ opacity: 0, y: 28 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.65, delay: 0.08, ease: "easeOut" }}
           className="relative z-10"
         >
           <p className="mb-3 text-xs font-medium uppercase tracking-widest" style={{ color: "hsl(239 84% 70%)" }}>
@@ -225,7 +225,7 @@ export default function LoginPage() {
         <motion.div
           initial={{ opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.55, ease: "easeOut" }}
           className="w-full max-w-sm"
         >
           {/* Mobile logo — hidden on desktop */}
