@@ -218,9 +218,3 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     </>
   );
 }
-
-
-interface SidebarProps {
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-}
