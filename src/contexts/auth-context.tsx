@@ -31,37 +31,41 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const initialGuest =
+    typeof window !== "undefined" && localStorage.getItem(GUEST_KEY) === "true";
+
   const [user, setUser] = useState<User | null>(null);
-  const [isGuest, setIsGuest] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [isGuest, setIsGuest] = useState<boolean>(initialGuest);
+  const [loading, setLoading] = useState<boolean>(!initialGuest);
 
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | undefined;
 
-    const currentlyGuest = localStorage.getItem(GUEST_KEY) === "true";
-    if (currentlyGuest) {
-      setIsGuest(true);
-      setLoading(false);
+    if (isGuest) {
       return;
     }
 
-    try {
-      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          localStorage.removeItem(GUEST_KEY);
-          setIsGuest(false);
-        }
+    const initAuthListener = async () => {
+      try {
+        const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            localStorage.removeItem(GUEST_KEY);
+            setIsGuest(false);
+          }
+          setLoading(false);
+        });
+        subscription = data?.subscription;
+      } catch (error) {
+        console.error("Error setting up auth listener:", error);
         setLoading(false);
-      });
-      subscription = data?.subscription;
-    } catch (error) {
-      console.error("Error setting up auth listener:", error);
-      setLoading(false);
-    }
+      }
+    };
+
+    void initAuthListener();
 
     return () => subscription?.unsubscribe();
-  }, []);
+  }, [isGuest]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });

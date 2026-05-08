@@ -53,6 +53,13 @@ export default function LoginPage() {
   const router = useRouter();
   const { signIn, signUp, sendPasswordResetEmail, signInAsGuest, user, isGuest, loading } = useAuth();
 
+  const getInitialError = () => {
+    if (typeof window === "undefined") return "";
+    const params = new URLSearchParams(window.location.search);
+    const authErr = params.get("authError");
+    return authErr ? decodeURIComponent(authErr) : "";
+  };
+
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -60,7 +67,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(getInitialError);
   const [successMsg, setSuccessMsg] = useState("");
 
   const pwStrength = passwordStrength(password);
@@ -68,9 +75,6 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.search.includes("authError")) {
-      const params = new URLSearchParams(window.location.search);
-      const msg = params.get("authError") ?? "";
-      setError(decodeURIComponent(msg));
       window.history.replaceState({}, "", "/login");
     }
   }, []);

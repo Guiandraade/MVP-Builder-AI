@@ -22,6 +22,7 @@ export interface Conversation {
 
 // ── Guest-mode localStorage persistence ─────────────────────────────────────
 const GUEST_CACHE_KEY = "mvp-builder-ai-guest-cache";
+const GUEST_MODE_KEY = "mvp-builder-ai-guest";
 
 type GuestCache = {
   conversations: Conversation[];
@@ -89,7 +90,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   messagesLoading: false,
   error: null,
   searchQuery: "",
-  isGuestMode: false,
+  isGuestMode:
+    typeof window !== "undefined" && localStorage.getItem(GUEST_MODE_KEY) === "true",
 
   setGuestMode: (v: boolean) => set({ isGuestMode: v }),
 
