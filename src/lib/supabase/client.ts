@@ -1,22 +1,36 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// Fallback to placeholder during static build — real values come from env vars at runtime
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key";
+let _instance: SupabaseClient | null = null;
 
-// In SSR/build environments window is undefined — provide a no-op storage so GoTrueClient
-// does not attempt to access globalThis.localStorage (which is undefined in Node.js)
-const noopStorage = {
-  getItem: (_key: string) => null,
-  setItem: (_key: string, _value: string) => undefined,
-  removeItem: (_key: string) => undefined,
-};
+function getClient(): SupabaseClient {
+  if (!_instance) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key";
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    storageKey: "mvp-builder-ai-auth",
-    storage: typeof window !== "undefined" ? window.localStorage : noopStorage,
+    const noopStorage = {
+      getItem: () => null as string | null,
+      setItem: () => {},
+      removeItem: () => {},
+    };
+
+    _instance = createClient(url, key, {
+      auth: {
+        persistSession: typeof window !== "undefined",
+        autoRefreshToken: typeof window !== "undefined",
+        storageKey: "mvp-builder-ai-auth",
+        storage: typeof window !== "undefined" ? window.localStorage : noopStorage,
+      },
+    });
+  }
+  return _instance;
+}
+
+// Lazy proxy: createClient is only called when a property is actually accessed,
+// NOT during module evaluation. This prevents crashes during Vercel static builds.
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_target, prop, receiver) {
+    const client = getClient();
+    const value = Reflect.get(client, prop, receiver);
+    return typeof value === "function" ? value.bind(client) : value;
   },
 });
