@@ -49,9 +49,13 @@ function passwordStrength(pw: string): number {
 const STRENGTH_LABELS = ["", "Fraca", "Razoável", "Boa", "Forte"];
 const STRENGTH_COLORS = ["", "hsl(0 72% 51%)", "hsl(38 92% 50%)", "hsl(142 71% 45%)", "hsl(142 71% 45%)"];
 
+function isConfirmationPendingMessage(message: string) {
+  return /confirme seu e-mail/i.test(message);
+}
+
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, signUp, sendPasswordResetEmail, signInAsGuest, user, isGuest, loading } = useAuth();
+  const { signIn, signUp, resendConfirmationEmail, sendPasswordResetEmail, signInAsGuest, user, isGuest, loading } = useAuth();
 
   const getInitialError = () => {
     if (typeof window === "undefined") return "";
@@ -67,8 +71,10 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [resendingConfirmation, setResendingConfirmation] = useState(false);
   const [error, setError] = useState(getInitialError);
   const [successMsg, setSuccessMsg] = useState("");
+  const [confirmationEmail, setConfirmationEmail] = useState("");
 
   const pwStrength = passwordStrength(password);
   const passwordTouched = password.length > 0;
@@ -100,10 +106,33 @@ export default function LoginPage() {
     setMode(next);
     setError("");
     setSuccessMsg("");
+    setConfirmationEmail("");
     setPassword("");
     setConfirmPassword("");
     setShowPassword(false);
     setShowConfirm(false);
+  };
+
+  const handleResendConfirmation = async () => {
+    const emailToResend = confirmationEmail || email.trim();
+
+    if (!emailToResend) {
+      setError("Digite seu e-mail para reenviar a confirmação.");
+      return;
+    }
+
+    setResendingConfirmation(true);
+    setError("");
+
+    try {
+      await resendConfirmationEmail(emailToResend);
+      setConfirmationEmail(emailToResend);
+      setSuccessMsg("Reenviamos o e-mail de confirmação. Verifique sua caixa de entrada e spam antes de tentar entrar.");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setResendingConfirmation(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -140,13 +169,18 @@ export default function LoginPage() {
       } else {
         const { needsConfirmation } = await signUp(email.trim(), password);
         if (needsConfirmation) {
+          setConfirmationEmail(email.trim());
           setSuccessMsg("Conta criada! Verifique seu e-mail para confirmar antes de entrar.");
           setPassword("");
           setConfirmPassword("");
         }
       }
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message;
+      setError(message);
+      if (isConfirmationPendingMessage(message)) {
+        setConfirmationEmail(email.trim());
+      }
     } finally {
       setSubmitting(false);
     }
@@ -330,7 +364,19 @@ export default function LoginPage() {
                   style={{ background: "hsl(142 71% 45% / 0.1)", border: "1px solid hsl(142 71% 45% / 0.3)", color: "hsl(142 71% 60%)" }}
                 >
                   {successMsg}
+                  {confirmationEmail && isConfirmationPendingMessage(successMsg) && (
+                    <button
+                      type="button"
+                      className="mt-3 block w-full rounded-lg px-3 py-2 text-xs font-medium"
+                      style={{ background: "hsl(142 71% 45% / 0.14)", border: "1px solid hsl(142 71% 45% / 0.28)", color: "hsl(142 71% 72%)", cursor: resendingConfirmation ? "wait" : "pointer" }}
+                      onClick={handleResendConfirmation}
+                      disabled={resendingConfirmation}
+                    >
+                      {resendingConfirmation ? "Reenviando..." : "Reenviar e-mail de confirmação"}
+                    </button>
+                  )}
                   <button
+                    type="button"
                     className="mt-3 block w-full text-xs underline"
                     style={{ color: "hsl(240 5% 55%)", background: "none", border: "none", cursor: "pointer" }}
                     onClick={() => { setSuccessMsg(""); switchMode("login"); }}
@@ -506,6 +552,18 @@ export default function LoginPage() {
                     >
                       {error}
                     </motion.p>
+                  )}
+
+                  {error && confirmationEmail && isConfirmationPendingMessage(error) && (
+                    <button
+                      type="button"
+                      onClick={handleResendConfirmation}
+                      disabled={resendingConfirmation}
+                      className="w-full rounded-xl px-3 py-2.5 text-xs font-medium"
+                      style={{ background: "hsl(239 84% 67% / 0.12)", border: "1px solid hsl(239 84% 67% / 0.25)", color: "hsl(239 84% 75%)", cursor: resendingConfirmation ? "wait" : "pointer" }}
+                    >
+                      {resendingConfirmation ? "Reenviando confirmação..." : "Reenviar e-mail de confirmação"}
+                    </button>
                   )}
 
                   {/* Submit */}

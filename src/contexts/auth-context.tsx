@@ -9,9 +9,11 @@ const GUEST_KEY = "mvp-builder-ai-guest";
 function normalizeAuthError(error: unknown): string {
   if (!error || typeof error !== "object") return "Erro inesperado. Tente novamente.";
   const msg = "message" in error ? String((error as { message?: unknown }).message ?? "") : "";
+  if (/email not confirmed|email_not_confirmed|confirm.*email/i.test(msg)) {
+    return "Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.";
+  }
   if (/invalid login credentials|invalid_credentials/i.test(msg)) return "E-mail ou senha incorretos.";
   if (/user already registered|already been registered/i.test(msg)) return "Este e-mail já está cadastrado. Faça login.";
-  if (/email not confirmed/i.test(msg)) return "Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.";
   if (/rate limit/i.test(msg)) return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
   return msg || "Erro inesperado. Tente novamente.";
 }
@@ -22,6 +24,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
+  resendConfirmationEmail: (email: string) => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
   signInAsGuest: () => void;
@@ -88,6 +91,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { needsConfirmation };
   };
 
+  const resendConfirmationEmail = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) throw new Error(normalizeAuthError(error));
+  };
+
   const signInAsGuest = () => {
     localStorage.setItem(GUEST_KEY, "true");
     setIsGuest(true);
@@ -113,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isGuest, loading, signIn, signUp, sendPasswordResetEmail, updatePassword, signInAsGuest, signOut }}>
+    <AuthContext.Provider value={{ user, isGuest, loading, signIn, signUp, resendConfirmationEmail, sendPasswordResetEmail, updatePassword, signInAsGuest, signOut }}>
       {children}
     </AuthContext.Provider>
   );
