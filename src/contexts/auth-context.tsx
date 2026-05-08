@@ -9,6 +9,9 @@ const GUEST_KEY = "mvp-builder-ai-guest";
 function normalizeAuthError(error: unknown): string {
   if (!error || typeof error !== "object") return "Erro inesperado. Tente novamente.";
   const msg = "message" in error ? String((error as { message?: unknown }).message ?? "") : "";
+  if (/over_email_send_rate_limit|email rate limit exceeded/i.test(msg)) {
+    return "O envio do e-mail de confirmação está temporariamente indisponível. Aguarde alguns minutos e tente novamente.";
+  }
   if (/email not confirmed|email_not_confirmed|confirm.*email/i.test(msg)) {
     return "Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.";
   }

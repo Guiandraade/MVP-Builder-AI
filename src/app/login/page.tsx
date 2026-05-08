@@ -48,9 +48,30 @@ function passwordStrength(pw: string): number {
 
 const STRENGTH_LABELS = ["", "Fraca", "Razoável", "Boa", "Forte"];
 const STRENGTH_COLORS = ["", "hsl(0 72% 51%)", "hsl(38 92% 50%)", "hsl(142 71% 45%)", "hsl(142 71% 45%)"];
+const PENDING_CONFIRMATION_EMAIL_KEY = "mvp-builder-ai-pending-confirmation-email";
+const SIGNUP_PENDING_LOGIN_MESSAGE = "Seu cadastro ainda não pôde ser concluído porque o e-mail de confirmação não foi enviado. Aguarde alguns minutos e tente criar a conta novamente ou reenviar a confirmação.";
 
 function isConfirmationPendingMessage(message: string) {
   return /confirme seu e-mail/i.test(message);
+}
+
+function isConfirmationDeliveryIssue(message: string) {
+  return /envio do e-mail de confirmação.*indisponível/i.test(message);
+}
+
+function getPendingConfirmationEmail() {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(PENDING_CONFIRMATION_EMAIL_KEY) ?? "";
+}
+
+function setPendingConfirmationEmail(email: string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PENDING_CONFIRMATION_EMAIL_KEY, email.toLowerCase());
+}
+
+function clearPendingConfirmationEmail() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(PENDING_CONFIRMATION_EMAIL_KEY);
 }
 
 export default function LoginPage() {
@@ -166,9 +187,11 @@ export default function LoginPage() {
     try {
       if (mode === "login") {
         await signIn(email.trim(), password);
+        clearPendingConfirmationEmail();
       } else {
         const { needsConfirmation } = await signUp(email.trim(), password);
         if (needsConfirmation) {
+          setPendingConfirmationEmail(email.trim());
           setConfirmationEmail(email.trim());
           setSuccessMsg("Conta criada! Verifique seu e-mail para confirmar antes de entrar.");
           setPassword("");
@@ -176,9 +199,26 @@ export default function LoginPage() {
         }
       }
     } catch (err) {
-      const message = (err as Error).message;
+      let message = (err as Error).message;
+      const normalizedEmail = email.trim().toLowerCase();
+
+      if (mode === "signup" && isConfirmationDeliveryIssue(message)) {
+        setPendingConfirmationEmail(normalizedEmail);
+        setConfirmationEmail(email.trim());
+      }
+
+      if (
+        mode === "login" &&
+        message === "E-mail ou senha incorretos." &&
+        getPendingConfirmationEmail() === normalizedEmail
+      ) {
+        message = SIGNUP_PENDING_LOGIN_MESSAGE;
+        setConfirmationEmail(email.trim());
+      }
+
       setError(message);
-      if (isConfirmationPendingMessage(message)) {
+      if (isConfirmationPendingMessage(message) || isConfirmationDeliveryIssue(message)) {
+        setPendingConfirmationEmail(normalizedEmail);
         setConfirmationEmail(email.trim());
       }
     } finally {
