@@ -97,10 +97,11 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
       });
       await addMessage(conversation.id, "assistant", response);
 
-      // Auto-title after first exchange (only for authenticated users)
-      if (isFirstMessage && user) {
-        const session = await supabase.auth.getSession();
-        const token = session.data.session?.access_token ?? "";
+      // Auto-title after first exchange
+      if (isFirstMessage) {
+        const token = user
+          ? (await supabase.auth.getSession()).data.session?.access_token ?? ""
+          : "";
         const title = await generateTitle(content, conversation.id, token);
         await updateConversationTitle(conversation.id, title);
       }

@@ -10,12 +10,13 @@ import { useChatStore } from "@/lib/chat-store";
 export default function ChatPage() {
   const router = useRouter();
   const { user, isGuest, loading } = useAuth();
-  const { fetchConversations, setGuestMode } = useChatStore();
+  const { fetchConversations, setGuestMode, loadGuestConversations } = useChatStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setGuestMode(isGuest);
-  }, [isGuest, setGuestMode]);
+    if (isGuest) loadGuestConversations();
+  }, [isGuest, setGuestMode, loadGuestConversations]);
 
   useEffect(() => {
     if (!loading && !user && !isGuest) {

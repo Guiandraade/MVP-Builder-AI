@@ -216,7 +216,7 @@ export default function LoginPage() {
           className="relative z-10 text-[11px]"
           style={{ color: "hsl(240 5% 28%)" }}
         >
-          Powered by Groq · Llama 3.3 70B
+          Desenvolvido por Guilherme de Andrade
         </motion.p>
       </div>
 

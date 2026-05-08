@@ -20,6 +20,34 @@ export interface Conversation {
   updated_at: string;
 }
 
+// ── Guest-mode localStorage persistence ─────────────────────────────────────
+const GUEST_CACHE_KEY = "mvp-builder-ai-guest-cache";
+
+type GuestCache = {
+  conversations: Conversation[];
+  messages: Record<string, Message[]>;
+};
+
+function loadGuestCache(): GuestCache {
+  if (typeof window === "undefined") return { conversations: [], messages: {} };
+  try {
+    const raw = localStorage.getItem(GUEST_CACHE_KEY);
+    if (!raw) return { conversations: [], messages: {} };
+    return JSON.parse(raw) as GuestCache;
+  } catch {
+    return { conversations: [], messages: {} };
+  }
+}
+
+function saveGuestCache(cache: GuestCache): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(GUEST_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // localStorage quota exceeded — ignore
+  }
+}
+
 interface ChatStore {
   conversations: Conversation[];
   currentConversation: Conversation | null;
@@ -39,6 +67,7 @@ interface ChatStore {
   setCurrentConversation: (conversation: Conversation | null) => void;
   setSearchQuery: (query: string) => void;
   setGuestMode: (v: boolean) => void;
+  loadGuestConversations: () => void;
 
   // Message actions
   fetchMessages: (conversationId: string) => Promise<void>;
@@ -64,8 +93,17 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   setGuestMode: (v: boolean) => set({ isGuestMode: v }),
 
+  loadGuestConversations: () => {
+    const cache = loadGuestCache();
+    set({ conversations: cache.conversations });
+  },
+
   fetchConversations: async () => {
-    if (get().isGuestMode) return;
+    if (get().isGuestMode) {
+      const cache = loadGuestCache();
+      set({ conversations: cache.conversations, loading: false });
+      return;
+    }
     set({ loading: true, error: null });
     try {
       const {
@@ -98,6 +136,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
+      const cache = loadGuestCache();
+      cache.conversations = [localConv, ...cache.conversations];
+      saveGuestCache(cache);
       set((state) => ({
         conversations: [localConv, ...state.conversations],
         currentConversation: localConv,
@@ -136,6 +177,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   deleteConversation: async (id: string) => {
     if (get().isGuestMode) {
+      const cache = loadGuestCache();
+      cache.conversations = cache.conversations.filter((c) => c.id !== id);
+      delete cache.messages[id];
+      saveGuestCache(cache);
       set((state) => ({
         conversations: state.conversations.filter((c) => c.id !== id),
         currentConversation:
@@ -177,7 +222,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           : state.currentConversation,
     }));
 
-    if (get().isGuestMode) return;
+    if (get().isGuestMode) {
+      const cache = loadGuestCache();
+      cache.conversations = cache.conversations.map((c) =>
+        c.id === id ? { ...c, title } : c
+      );
+      saveGuestCache(cache);
+      return;
+    }
 
     try {
       await supabase
@@ -229,8 +281,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   fetchMessages: async (conversationId: string) => {
     if (get().isGuestMode) {
-      // Guest mode: clear messages when switching conversations (in-memory only)
-      set({ messages: [], messagesLoading: false });
+      const cache = loadGuestCache();
+      set({ messages: cache.messages[conversationId] ?? [], messagesLoading: false });
       return;
     }
 
@@ -260,6 +312,12 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         content,
         created_at: new Date().toISOString(),
       };
+      const cache = loadGuestCache();
+      cache.messages[conversationId] = [
+        ...(cache.messages[conversationId] ?? []),
+        msg,
+      ];
+      saveGuestCache(cache);
       set((state) => ({ messages: [...state.messages, msg] }));
       return msg;
     }
@@ -312,19 +370,4 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   clearError: () => set({ error: null }),
 }));
-
-export interface Message {
-  id: string;
-  conversation_id: string;
-  role: "user" | "assistant";
-  content: string;
-  created_at: string;
-}
-
-export interface Conversation {
-  id: string;
-  title: string;
-  created_at: string;
-  updated_at: string;
-}
 
