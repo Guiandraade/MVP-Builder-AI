@@ -77,16 +77,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       checkUser();
     }
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        localStorage.removeItem(GUEST_KEY);
-        setIsGuest(false);
-        setLoading(false);
-      }
-      setUser(session?.user ?? null);
-    });
+    let subscription: { unsubscribe: () => void } | undefined;
+    try {
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          localStorage.removeItem(GUEST_KEY);
+          setIsGuest(false);
+          setLoading(false);
+        }
+        setUser(session?.user ?? null);
+      });
+      subscription = data?.subscription;
+    } catch (error) {
+      console.error("Error setting up auth listener:", error);
+      setLoading(false);
+    }
 
     return () => subscription?.unsubscribe();
   }, []);
