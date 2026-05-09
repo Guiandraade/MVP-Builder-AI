@@ -235,37 +235,15 @@ function buildDeepDiveResponse(userInput: string, history: ChatMessage[]): strin
 }
 
 function localConversationalResponse(userInput: string, history: ChatMessage[]): string {
+  // Never block on noise — always attempt to respond
   if (isLikelyNoiseInput(userInput)) {
-    return buildClarifyIntentReply();
-  }
-
-  const assistantTurns = history.filter((m) => m.role === "assistant").length;
-  const contextualHint = /app|aplicativo|mvp|saas|produto|sistema|plataforma|api|auth|login|pagamento|arquitetura|stack|roadmap|bug|erro|feature|frontend|backend|react|next|node|typescript|javascript|python|java|deploy|vercel|supabase|banco|sql|schema|performance|escala/i.test(userInput);
-
-  // First response: answer with value when there is context, ask only if needed.
-  if (assistantTurns === 0) {
-    if (contextualHint || userInput.trim().split(/\s+/).length >= 6) {
-      return buildContextualResponse(userInput, [...history, { role: "user", content: userInput }]);
-    }
-    return buildClarifyingResponse(userInput, 0);
-  }
-
-  // Second response: if user answered questions, check if we have enough context
-  if (assistantTurns === 1) {
-    const userTurns = history.filter((m) => m.role === "user");
-    const totalUserContent = userTurns.map((m) => m.content).join(" ") + " " + userInput;
-    const wordCount = totalUserContent.trim().split(/\s+/).length;
-
-    // If user gave a very short answer, ask one more round of questions
-    if (wordCount < 18) {
-      return buildClarifyingResponse(userInput, 1);
-    }
-
+    // Instead of asking clarifying questions, try to provide context-aware response anyway
     return buildContextualResponse(userInput, [...history, { role: "user", content: userInput }]);
   }
 
-  // Third+ response: deep dive based on what user is asking
-  return buildDeepDiveResponse(userInput, [...history, { role: "user", content: userInput }]);
+  // ALWAYS respond directly without gatekeeping
+  // No matter word count or context hints, return immediate contextual response
+  return buildContextualResponse(userInput, [...history, { role: "user", content: userInput }]);
 }
 
 // ---------------------------------------------------------------------------
