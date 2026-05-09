@@ -59,7 +59,7 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
           className="flex items-end gap-2 rounded-2xl border px-3 py-2"
           style={{
             background: "var(--surface-2)",
-            borderColor: canSend ? "hsl(239 84% 67% / 0.35)" : "hsl(240 10% 18%)",
+            borderColor: canSend ? "hsl(0 0% 100% / 0.18)" : "hsl(240 10% 18%)",
             transition: "border-color 0.2s",
           }}
         >
@@ -84,8 +84,12 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
         <button
           type="submit"
           disabled={!canSend}
-          className="brand-gradient flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-white shadow transition-opacity disabled:cursor-not-allowed disabled:opacity-30 md:h-10 md:w-10"
-          style={{ minWidth: "36px" }}
+          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-white shadow transition-opacity disabled:cursor-not-allowed disabled:opacity-30 md:h-10 md:w-10"
+          style={{
+            minWidth: "36px",
+            background: canSend ? "hsl(220 8% 24%)" : "hsl(220 8% 18%)",
+            border: "1px solid hsl(0 0% 100% / 0.14)",
+          }}
           aria-label="Enviar mensagem"
         >
           <Send className="h-4 w-4" />

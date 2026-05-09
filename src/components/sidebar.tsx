@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
 import { useChatStore } from "@/lib/chat-store";
 import { ConversationList } from "@/components/conversation-list";
-import { Plus, LogOut, Sparkles, Search, X } from "lucide-react";
+import { Plus, LogOut, Search, X } from "lucide-react";
 import { useState } from "react";
 
 interface SidebarProps {
@@ -71,14 +71,21 @@ function SidebarContent({
         style={{ borderColor: "hsl(240 10% 14%)" }}
       >
         <div className="flex items-center gap-2.5">
-          <div className="brand-gradient flex h-7 w-7 items-center justify-center rounded-lg text-white shadow">
-            <Sparkles className="h-3.5 w-3.5" />
+          <div
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-[10px] font-semibold shadow"
+            style={{
+              background: "hsl(220 8% 20%)",
+              color: "hsl(0 0% 92%)",
+              border: "1px solid hsl(0 0% 100% / 0.14)",
+            }}
+          >
+            MB
           </div>
           <div>
             <div className="text-sm font-semibold leading-none">MVP Builder AI</div>
             <div
               className="text-[10px] uppercase tracking-[0.1em] mt-0.5"
-              style={{ color: "hsl(239 84% 67%)" }}
+              style={{ color: "hsl(0 0% 68%)" }}
             >
               Architect Mode
             </div>
@@ -102,15 +109,15 @@ function SidebarContent({
           disabled={creating}
           className="flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60"
           style={{
-            background: "hsl(239 84% 67% / 0.12)",
-            color: "hsl(239 84% 70%)",
-            border: "1px solid hsl(239 84% 67% / 0.2)",
+            background: "hsl(220 8% 20%)",
+            color: "hsl(0 0% 92%)",
+            border: "1px solid hsl(0 0% 100% / 0.12)",
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "hsl(239 84% 67% / 0.18)";
+            (e.currentTarget as HTMLButtonElement).style.background = "hsl(220 8% 24%)";
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "hsl(239 84% 67% / 0.12)";
+            (e.currentTarget as HTMLButtonElement).style.background = "hsl(220 8% 20%)";
           }}
         >
           <Plus className="h-4 w-4" />

@@ -153,9 +153,9 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
             <span
               className="hidden items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-wider md:inline-flex"
               style={{
-                borderColor: "hsl(239 84% 67% / 0.15)",
-                color: "hsl(239 84% 67%)",
-                background: "hsl(239 84% 67% / 0.06)",
+                borderColor: "hsl(0 0% 100% / 0.16)",
+                color: "hsl(0 0% 82%)",
+                background: "hsl(0 0% 100% / 0.04)",
               }}
             >
               <Pin className="h-2.5 w-2.5" />
@@ -181,9 +181,9 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
               <div className="mb-10 text-center">
                 <div
                   className="mx-auto mb-5 h-10 w-10 rounded-2xl flex items-center justify-center text-lg select-none"
-                  style={{ background: "hsl(239 84% 67% / 0.12)", border: "1px solid hsl(239 84% 67% / 0.2)", color: "hsl(239 84% 67%)" }}
+                  style={{ background: "hsl(0 0% 100% / 0.05)", border: "1px solid hsl(0 0% 100% / 0.14)", color: "hsl(0 0% 84%)" }}
                 >
-                  ✦
+                  •
                 </div>
                 <h2 className="text-2xl font-semibold tracking-tight">O que você está construindo?</h2>
                 <p className="mt-2 text-sm" style={{ color: "hsl(240 5% 50%)" }}>
@@ -206,8 +206,8 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
                       color: "hsl(240 5% 72%)",
                     }}
                     onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(239 84% 67% / 0.3)";
-                      (e.currentTarget as HTMLButtonElement).style.background = "hsl(239 84% 67% / 0.04)";
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(0 0% 100% / 0.2)";
+                      (e.currentTarget as HTMLButtonElement).style.background = "hsl(0 0% 100% / 0.03)";
                       (e.currentTarget as HTMLButtonElement).style.color = "hsl(240 5% 92%)";
                     }}
                     onMouseLeave={(e) => {
@@ -218,7 +218,7 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
                   >
                     <span
                       className="mt-0.5 shrink-0 text-[10px] font-mono tabular-nums"
-                      style={{ color: "hsl(239 84% 67% / 0.5)" }}
+                      style={{ color: "hsl(0 0% 76% / 0.6)" }}
                     >
                       0{i + 1}
                     </span>
@@ -254,16 +254,16 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
                       <div className="flex items-start gap-3 px-4 py-3 md:px-6">
                         <div
                           className="mt-0.5 h-6 w-6 shrink-0 rounded-full flex items-center justify-center text-[11px] font-semibold select-none"
-                          style={{ background: "hsl(239 84% 67% / 0.12)", color: "hsl(239 84% 67%)", border: "1px solid hsl(239 84% 67% / 0.2)" }}
+                          style={{ background: "hsl(0 0% 100% / 0.05)", color: "hsl(0 0% 84%)", border: "1px solid hsl(0 0% 100% / 0.14)" }}
                         >
-                          ✦
+                          •
                         </div>
                         <div className="flex items-center gap-1.5 pt-1.5">
                           {[0, 0.15, 0.3].map((delay) => (
                             <motion.span
                               key={delay}
                               className="block h-2 w-2 rounded-full"
-                              style={{ background: "hsl(239 84% 67%)" }}
+                              style={{ background: "hsl(0 0% 82%)" }}
                               animate={{ opacity: [0.3, 1, 0.3] }}
                               transition={{ duration: 1.2, repeat: Infinity, delay }}
                             />
