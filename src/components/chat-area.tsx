@@ -184,6 +184,9 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
                 <p className="mt-2 text-sm" style={{ color: "hsl(240 5% 50%)" }}>
                   Descreva sua ideia — receba arquitetura, stack e roadmap sob medida.
                 </p>
+                <p className="mt-2 text-xs" style={{ color: "hsl(240 5% 42%)" }}>
+                  Criada por Guilherme de Andrade, esta IA está à sua disposição para ajudar.
+                </p>
               </div>
 
               <div className="space-y-2">

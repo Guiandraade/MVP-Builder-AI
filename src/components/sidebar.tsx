@@ -34,7 +34,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       await addMessage(
         conv.id,
         "assistant",
-        "Oi! Eu sou o Arquiteto AI. Me descreva sua ideia e eu monto arquitetura, stack e roadmap para seu MVP."
+        "Oi! Eu sou o Arquiteto AI, criado por Guilherme de Andrade. Estou à sua disposição para ajudar com arquitetura, stack e roadmap do seu MVP."
       );
       onMobileClose?.();
     } catch (error) {

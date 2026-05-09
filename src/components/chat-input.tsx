@@ -75,8 +75,8 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
           placeholder="Descreva sua ideia de software..."
           disabled={isLoading || disabled}
           inputMode="text"
-          className="flex-1 resize-none bg-transparent px-1 py-1 text-sm leading-relaxed outline-none placeholder:text-muted-foreground disabled:opacity-50"
-          style={{ minHeight: "40px", maxHeight: "200px" }}
+          className="flex-1 resize-none bg-transparent px-1 py-1 text-base leading-relaxed outline-none placeholder:text-muted-foreground disabled:opacity-50 md:text-sm"
+          style={{ minHeight: "42px", maxHeight: "180px" }}
           rows={1}
         />
         <button
