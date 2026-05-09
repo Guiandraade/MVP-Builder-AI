@@ -3,6 +3,17 @@
 import { create } from "zustand";
 import { supabase } from "@/lib/supabase/client";
 
+export const MAX_CONVERSATION_TITLE_CHARS = 120;
+export const MAX_MESSAGE_CONTENT_CHARS = 8000;
+
+function sanitizeTitle(input: string): string {
+  return input.replace(/\s+/g, " ").trim();
+}
+
+function normalizeMessageContent(input: string): string {
+  return input.replace(/\r\n/g, "\n").trim();
+}
+
 export interface Message {
   id: string;
   conversation_id: string;
@@ -163,10 +174,22 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   createConversation: async (title: string) => {
+    const safeTitle = sanitizeTitle(title);
+    if (!safeTitle) {
+      const err = new Error("O título da conversa não pode ficar vazio.");
+      set({ error: err.message });
+      throw err;
+    }
+    if (safeTitle.length > MAX_CONVERSATION_TITLE_CHARS) {
+      const err = new Error(`Título muito longo. Use no máximo ${MAX_CONVERSATION_TITLE_CHARS} caracteres.`);
+      set({ error: err.message });
+      throw err;
+    }
+
     if (get().isGuestMode) {
       const localConv: Conversation = {
         id: `guest-${crypto.randomUUID()}`,
-        title,
+        title: safeTitle,
         pinned: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -191,7 +214,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
       const { data, error } = await supabase
         .from("conversations")
-        .insert([{ user_id: user.id, title, pinned: false }])
+        .insert([{ user_id: user.id, title: safeTitle, pinned: false }])
         .select()
         .single();
 
@@ -246,21 +269,31 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   updateConversationTitle: async (id: string, title: string) => {
+    const safeTitle = sanitizeTitle(title);
+    if (!safeTitle) {
+      set({ error: "O título da conversa não pode ficar vazio." });
+      return;
+    }
+    if (safeTitle.length > MAX_CONVERSATION_TITLE_CHARS) {
+      set({ error: `Título muito longo. Use no máximo ${MAX_CONVERSATION_TITLE_CHARS} caracteres.` });
+      return;
+    }
+
     // Optimistic update
     set((state) => ({
       conversations: state.conversations.map((c) =>
-        c.id === id ? { ...c, title } : c
+        c.id === id ? { ...c, title: safeTitle } : c
       ),
       currentConversation:
         state.currentConversation?.id === id
-          ? { ...state.currentConversation, title }
+          ? { ...state.currentConversation, title: safeTitle }
           : state.currentConversation,
     }));
 
     if (get().isGuestMode) {
       const cache = loadGuestCache();
       cache.conversations = cache.conversations.map((c) =>
-        c.id === id ? { ...c, title } : c
+        c.id === id ? { ...c, title: safeTitle } : c
       );
       saveGuestCache(cache);
       return;
@@ -269,7 +302,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     try {
       await supabase
         .from("conversations")
-        .update({ title })
+        .update({ title: safeTitle })
         .eq("id", id);
     } catch (error) {
       console.error("Failed to update title:", error);
@@ -339,12 +372,24 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   addMessage: async (conversationId: string, role, content) => {
+    const safeContent = normalizeMessageContent(content);
+    if (!safeContent) {
+      const err = new Error("Mensagem vazia não é permitida.");
+      set({ error: err.message });
+      throw err;
+    }
+    if (safeContent.length > MAX_MESSAGE_CONTENT_CHARS) {
+      const err = new Error(`Mensagem muito longa. Use no máximo ${MAX_MESSAGE_CONTENT_CHARS} caracteres.`);
+      set({ error: err.message });
+      throw err;
+    }
+
     if (get().isGuestMode) {
       const msg: Message = {
         id: `guest-msg-${crypto.randomUUID()}`,
         conversation_id: conversationId,
         role,
-        content,
+        content: safeContent,
         created_at: new Date().toISOString(),
       };
       const cache = loadGuestCache();
@@ -363,7 +408,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       id: optimisticId,
       conversation_id: conversationId,
       role,
-      content,
+      content: safeContent,
       created_at: new Date().toISOString(),
       optimistic: true,
     };
@@ -373,7 +418,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     try {
       const { data, error } = await supabase
         .from("messages")
-        .insert([{ conversation_id: conversationId, role, content }])
+        .insert([{ conversation_id: conversationId, role, content: safeContent }])
         .select()
         .single();
 

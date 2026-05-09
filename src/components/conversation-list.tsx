@@ -1,6 +1,6 @@
 "use client";
 
-import { Conversation, useChatStore } from "@/lib/chat-store";
+import { Conversation, MAX_CONVERSATION_TITLE_CHARS, useChatStore } from "@/lib/chat-store";
 import { Trash2, Pin, PinOff, Pencil, Check, X } from "lucide-react";
 import {
   Dialog,
@@ -141,6 +141,7 @@ export function ConversationList({
               }}
               autoFocus
               disabled={savingTitle}
+              maxLength={MAX_CONVERSATION_TITLE_CHARS}
               className="w-full rounded-md border px-2 py-1 text-sm outline-none"
               style={{
                 background: "var(--surface-2)",

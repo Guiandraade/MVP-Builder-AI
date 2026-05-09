@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Send } from "lucide-react";
+import { MAX_MESSAGE_CONTENT_CHARS } from "@/lib/chat-store";
 
 interface ChatInputProps {
   disabled?: boolean;
@@ -75,6 +76,7 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
           placeholder="Descreva sua ideia de software..."
           disabled={isLoading || disabled}
           inputMode="text"
+          maxLength={MAX_MESSAGE_CONTENT_CHARS}
           className="flex-1 resize-none bg-transparent px-1 py-1 text-base leading-relaxed outline-none placeholder:text-muted-foreground disabled:opacity-50 md:text-sm"
           style={{ minHeight: "42px", maxHeight: "180px" }}
           rows={1}
@@ -89,11 +91,8 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
           <Send className="h-4 w-4" />
         </button>
         </form>
-        <p
-          className="mt-2 text-center text-[10px] hidden md:block"
-          style={{ color: "hsl(240 5% 35%)" }}
-        >
-          Enter para enviar · Shift+Enter para nova linha
+        <p className="mt-2 text-center text-[10px]" style={{ color: "hsl(240 5% 35%)" }}>
+          {input.length}/{MAX_MESSAGE_CONTENT_CHARS} caracteres · Enter para enviar · Shift+Enter para nova linha
         </p>
       </div>
     </div>

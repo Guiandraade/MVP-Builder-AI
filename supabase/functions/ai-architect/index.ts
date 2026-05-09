@@ -6,6 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const MAX_USER_INPUT_CHARS = 8000;
+const MAX_HISTORY_ITEMS = 30;
+const MAX_HISTORY_MESSAGE_CHARS = 4000;
+
 const SYSTEM_PROMPT = `Você é o Arquiteto AI — um especialista sênior em construção de MVPs, produtos SaaS e arquitetura de software.
 
 Seu papel é transformar qualquer ideia — mesmo vaga — em uma estratégia clara, técnica e executável.
@@ -55,6 +59,10 @@ type RequestBody = {
   mode?: "chat" | "title";
   history?: ChatMessage[];
 };
+
+function clampText(text: string, maxChars: number): string {
+  return text.slice(0, maxChars);
+}
 
 function fallbackTitle(userText: string): string {
   const base = userText.split(/[.!?\n]/)[0].trim().replace(/^[#\-*>\s]+/, "");
@@ -110,7 +118,14 @@ serve(async (req: Request) => {
 
   try {
     const body = (await req.json()) as RequestBody;
-    const userText = (body.message || body.input || body.prompt || "").trim();
+    const rawUserText = (body.message || body.input || body.prompt || "").trim();
+    if (rawUserText.length > MAX_USER_INPUT_CHARS) {
+      return new Response(JSON.stringify({ error: `Mensagem muito longa. Limite de ${MAX_USER_INPUT_CHARS} caracteres.` }), {
+        status: 413,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userText = rawUserText;
 
     if (!userText) {
       return new Response(JSON.stringify({ error: "Missing message" }), {
@@ -143,7 +158,12 @@ serve(async (req: Request) => {
     }
 
     // Build messages with history
-    const history = Array.isArray(body.history) ? body.history : [];
+    const history = (Array.isArray(body.history) ? body.history : [])
+      .slice(-MAX_HISTORY_ITEMS)
+      .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .map((m) => ({ role: m.role, content: clampText(m.content.trim(), MAX_HISTORY_MESSAGE_CHARS) }))
+      .filter((m) => m.content.length > 0);
+
     const messages: { role: string; content: string }[] = [
       { role: "system", content: SYSTEM_PROMPT },
       ...history.map((m) => ({ role: m.role, content: m.content })),
