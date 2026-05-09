@@ -59,7 +59,10 @@ function isLikelyNoiseInput(input: string): boolean {
   if (/^(?:[\W_]|\d)+$/.test(text)) return true;
   if (/^(?:a+|ha+|kk+|rs+|ok+|oi+|hey+|asdf+|qwe+|teste+|hmm+|hmmm+)$/.test(text)) return true;
 
+  const productIntentHint = /app|aplicativo|mvp|saas|produto|sistema|plataforma|site|api|banco|auth|login|pagamento|stripe|arquitetura|stack|roadmap|ticket|backlog|schema|sql|modelo/i;
   const words = text.split(/\s+/).filter(Boolean);
+  if (words.length <= 4 && !productIntentHint.test(text)) return true;
+
   if (words.length <= 2) {
     const joined = words.join("");
     if (/^[bcdfghjklmnpqrstvwxyz]{4,}$/i.test(joined)) return true;
@@ -73,6 +76,7 @@ function buildClarifyIntentReply(): string {
     "Parece que essa mensagem pode ter sido digitada por engano ou sem contexto suficiente.",
     "",
     "Se quiser, me diga em 1 frase o que você quer construir (ex: app, SaaS, marketplace, IA) e eu te devolvo arquitetura + roadmap objetivo.",
+    "Exemplo: Quero um SaaS de agendamentos para clínicas.",
   ].join("\n");
 }
 

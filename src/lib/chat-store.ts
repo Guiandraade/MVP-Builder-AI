@@ -337,11 +337,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   setCurrentConversation: (conversation) => {
-    set({ currentConversation: conversation });
+    // Clear visible messages immediately when switching conversations to avoid
+    // stale context flashes while the next conversation is loading.
+    set({ currentConversation: conversation, messages: [] });
     if (conversation) {
       get().fetchMessages(conversation.id);
-    } else {
-      set({ messages: [] });
     }
   },
 
@@ -350,6 +350,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   fetchMessages: async (conversationId: string) => {
     if (get().isGuestMode) {
       const cache = loadGuestCache();
+      if (get().currentConversation?.id !== conversationId) return;
       set({ messages: cache.messages[conversationId] ?? [], messagesLoading: false });
       return;
     }
@@ -363,6 +364,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         .order("created_at", { ascending: true });
 
       if (error) throw error;
+      // Protect against race conditions: if user switched conversation while
+      // this request was in-flight, ignore the stale result.
+      if (get().currentConversation?.id !== conversationId) return;
       set({ messages: data || [] });
     } catch (error) {
       set({ error: (error as Error).message });
@@ -398,7 +402,12 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         msg,
       ];
       saveGuestCache(cache);
-      set((state) => ({ messages: [...state.messages, msg] }));
+      set((state) => ({
+        messages:
+          state.currentConversation?.id === conversationId
+            ? [...state.messages, msg]
+            : state.messages,
+      }));
       return msg;
     }
 
@@ -413,7 +422,12 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       optimistic: true,
     };
 
-    set((state) => ({ messages: [...state.messages, optimisticMessage] }));
+    set((state) => ({
+      messages:
+        state.currentConversation?.id === conversationId
+          ? [...state.messages, optimisticMessage]
+          : state.messages,
+    }));
 
     try {
       const { data, error } = await supabase
@@ -426,9 +440,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
       // Replace optimistic message with real one
       set((state) => ({
-        messages: state.messages.map((m) =>
-          m.id === optimisticId ? data : m
-        ),
+        messages:
+          state.currentConversation?.id === conversationId
+            ? state.messages.map((m) => (m.id === optimisticId ? data : m))
+            : state.messages,
       }));
 
       // Update conversation updated_at
@@ -441,7 +456,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     } catch (error) {
       // Remove failed optimistic message
       set((state) => ({
-        messages: state.messages.filter((m) => m.id !== optimisticId),
+        messages:
+          state.currentConversation?.id === conversationId
+            ? state.messages.filter((m) => m.id !== optimisticId)
+            : state.messages,
         error: (error as Error).message,
       }));
       throw error;

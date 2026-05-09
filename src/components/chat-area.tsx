@@ -69,6 +69,10 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
 
     let conversation = currentConversation;
     let isFirstMessage = false;
+    const currentConversationId = currentConversation?.id ?? null;
+    const activeConversationMessages = currentConversationId
+      ? messages.filter((m) => m.conversation_id === currentConversationId)
+      : [];
 
     if (!conversation) {
       // Use first line as temp title; will be replaced by auto-title after AI responds
@@ -77,14 +81,15 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
       setCurrentConversation(conversation);
       isFirstMessage = true;
     } else {
-      isFirstMessage = messages.filter((m) => !m.optimistic).length === 0;
+      isFirstMessage =
+        activeConversationMessages.filter((m) => !m.optimistic).length === 0;
     }
 
     // Optimistic user message (appears instantly)
     await addMessage(conversation.id, "user", content);
 
     // Snapshot history BEFORE the new user message for AI context
-    const history = messages
+    const history = activeConversationMessages
       .filter((m) => !m.optimistic)
       .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
