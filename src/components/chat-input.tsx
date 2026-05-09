@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Send } from "lucide-react";
-import { MAX_MESSAGE_CONTENT_CHARS } from "@/lib/chat-store";
 
 interface ChatInputProps {
   disabled?: boolean;
@@ -52,14 +51,14 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
     >
       <div
         className="mx-auto w-full max-w-3xl px-3 py-3 md:px-4 md:py-4"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
       >
         <form
           onSubmit={handleSubmit}
           className="flex items-end gap-2 rounded-2xl border px-3 py-2"
           style={{
             background: "var(--surface-2)",
-            borderColor: canSend ? "hsl(0 0% 100% / 0.18)" : "hsl(240 10% 18%)",
+            borderColor: canSend ? "hsl(239 84% 67% / 0.35)" : "hsl(240 10% 18%)",
             transition: "border-color 0.2s",
           }}
         >
@@ -76,27 +75,25 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
           placeholder="Descreva sua ideia de software..."
           disabled={isLoading || disabled}
           inputMode="text"
-          maxLength={MAX_MESSAGE_CONTENT_CHARS}
-          className="flex-1 resize-none bg-transparent px-1 py-1 text-base leading-relaxed outline-none placeholder:text-muted-foreground disabled:opacity-50 md:text-sm"
-          style={{ minHeight: "42px", maxHeight: "180px" }}
+          className="flex-1 resize-none bg-transparent px-1 py-1 text-sm leading-relaxed outline-none placeholder:text-muted-foreground disabled:opacity-50"
+          style={{ minHeight: "40px", maxHeight: "200px" }}
           rows={1}
         />
         <button
           type="submit"
           disabled={!canSend}
-          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-white shadow transition-opacity disabled:cursor-not-allowed disabled:opacity-30 md:h-10 md:w-10"
-          style={{
-            minWidth: "36px",
-            background: canSend ? "hsl(220 8% 24%)" : "hsl(220 8% 18%)",
-            border: "1px solid hsl(0 0% 100% / 0.14)",
-          }}
+          className="brand-gradient flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-white shadow transition-opacity disabled:cursor-not-allowed disabled:opacity-30 md:h-10 md:w-10"
+          style={{ minWidth: "36px" }}
           aria-label="Enviar mensagem"
         >
           <Send className="h-4 w-4" />
         </button>
         </form>
-        <p className="mt-2 text-center text-[10px]" style={{ color: "hsl(240 5% 35%)" }}>
-          {input.length}/{MAX_MESSAGE_CONTENT_CHARS} caracteres · Enter para enviar · Shift+Enter para nova linha
+        <p
+          className="mt-2 text-center text-[10px] hidden md:block"
+          style={{ color: "hsl(240 5% 35%)" }}
+        >
+          Enter para enviar · Shift+Enter para nova linha
         </p>
       </div>
     </div>

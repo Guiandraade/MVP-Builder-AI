@@ -24,13 +24,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
         <div
           className="mt-0.5 h-6 w-6 shrink-0 rounded-full flex items-center justify-center text-[11px] font-semibold select-none"
           style={{
-            background: "hsl(0 0% 100% / 0.05)",
-            color: "hsl(0 0% 84%)",
-            border: "1px solid hsl(0 0% 100% / 0.14)",
+            background: "hsl(239 84% 67% / 0.12)",
+            color: "hsl(239 84% 67%)",
+            border: "1px solid hsl(239 84% 67% / 0.2)",
           }}
           aria-label="Arquiteto AI"
         >
-          A
+          ✦
         </div>
       )}
 

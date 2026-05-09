@@ -42,34 +42,6 @@ function pickClarifyingSet(turnIndex: number): string[] {
   return CLARIFYING_QUESTIONS[Math.min(turnIndex, CLARIFYING_QUESTIONS.length - 1)];
 }
 
-function isLikelyNoiseInput(input: string): boolean {
-  const text = input.trim().toLowerCase();
-  if (!text) return true;
-  if (text.length <= 2) return true;
-  if (/^(?:[\W_]|\d)+$/.test(text)) return true;
-  if (/^(?:a+|ha+|kk+|rs+|ok+|oi+|hey+|asdf+|qwe+|teste+|hmm+|hmmm+)$/.test(text)) return true;
-
-  const productIntentHint = /app|aplicativo|mvp|saas|produto|sistema|plataforma|site|api|banco|auth|login|pagamento|stripe|arquitetura|stack|roadmap|ticket|backlog|schema|sql|modelo|codigo|programa[cç][aã]o|bug|erro|feature|frontend|backend|react|next|node|typescript|javascript|python|java|c\+\+|c#|refator|deploy|vercel|supabase|banco/i;
-  const words = text.split(/\s+/).filter(Boolean);
-  if (words.length === 1 && !productIntentHint.test(text) && text.length <= 3) return true;
-
-  if (words.length <= 2) {
-    const joined = words.join("");
-    if (/^[bcdfghjklmnpqrstvwxyz]{4,}$/i.test(joined)) return true;
-  }
-
-  return false;
-}
-
-function buildClarifyIntentReply(): string {
-  return [
-    "Parece que essa mensagem pode ter sido digitada por engano ou sem contexto suficiente.",
-    "",
-    "Se quiser, me diga em 1 frase o que você quer construir (ex: app, SaaS, marketplace, IA) e eu te devolvo arquitetura + roadmap objetivo.",
-    "Exemplo: Quero um SaaS de agendamentos para clínicas.",
-  ].join("\n");
-}
-
 function buildClarifyingResponse(userInput: string, turnIndex: number): string {
   const questions = pickClarifyingSet(turnIndex);
   const intros = [
@@ -235,15 +207,29 @@ function buildDeepDiveResponse(userInput: string, history: ChatMessage[]): strin
 }
 
 function localConversationalResponse(userInput: string, history: ChatMessage[]): string {
-  // Never block on noise — always attempt to respond
-  if (isLikelyNoiseInput(userInput)) {
-    // Instead of asking clarifying questions, try to provide context-aware response anyway
+  const assistantTurns = history.filter((m) => m.role === "assistant").length;
+
+  // First response: always ask clarifying questions
+  if (assistantTurns === 0) {
+    return buildClarifyingResponse(userInput, 0);
+  }
+
+  // Second response: if user answered questions, check if we have enough context
+  if (assistantTurns === 1) {
+    const userTurns = history.filter((m) => m.role === "user");
+    const totalUserContent = userTurns.map((m) => m.content).join(" ") + " " + userInput;
+    const wordCount = totalUserContent.trim().split(/\s+/).length;
+
+    // If user gave a short answer, ask one more round of questions
+    if (wordCount < 40) {
+      return buildClarifyingResponse(userInput, 1);
+    }
+
     return buildContextualResponse(userInput, [...history, { role: "user", content: userInput }]);
   }
 
-  // ALWAYS respond directly without gatekeeping
-  // No matter word count or context hints, return immediate contextual response
-  return buildContextualResponse(userInput, [...history, { role: "user", content: userInput }]);
+  // Third+ response: deep dive based on what user is asking
+  return buildDeepDiveResponse(userInput, [...history, { role: "user", content: userInput }]);
 }
 
 // ---------------------------------------------------------------------------
