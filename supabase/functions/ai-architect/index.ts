@@ -58,14 +58,11 @@ NÃO peça mais informações antes de responder. Assuma o contexto mais prováv
 function isLikelyNoiseInput(input: string): boolean {
   const text = input.trim().toLowerCase();
   if (!text) return true;
-  if (text.length <= 2) return true;
+  // Only block truly random gibberish like "asdf", "qwerty", consonant-only strings
   if (/^(?:[\W_]|\d)+$/.test(text)) return true;
-  if (/^(?:a+|ha+|kk+|rs+|ok+|oi+|hey+|asdf+|qwe+|teste+|hmm+|hmmm+)$/.test(text)) return true;
+  if (/^(?:a+|ha+|kk+|rs+|asdf+|qwe+|hmm+|hmmm+)$/.test(text)) return true;
 
-  const productIntentHint = /app|aplicativo|mvp|saas|produto|sistema|plataforma|site|api|banco|auth|login|pagamento|stripe|arquitetura|stack|roadmap|ticket|backlog|schema|sql|modelo/i;
   const words = text.split(/\s+/).filter(Boolean);
-  if (words.length <= 4 && !productIntentHint.test(text)) return true;
-
   if (words.length <= 2) {
     const joined = words.join("");
     if (/^[bcdfghjklmnpqrstvwxyz]{4,}$/i.test(joined)) return true;
@@ -76,10 +73,10 @@ function isLikelyNoiseInput(input: string): boolean {
 
 function buildClarifyIntentReply(): string {
   return [
-    "Parece que essa mensagem pode ter sido digitada por engano ou sem contexto suficiente.",
+    "Olá! Sou o Arquiteto AI, criado por Guilherme de Andrade.",
     "",
-    "Se quiser, me diga em 1 frase o que você quer construir (ex: app, SaaS, marketplace, IA) e eu te devolvo arquitetura + roadmap objetivo.",
-    "Exemplo: Quero um SaaS de agendamentos para clínicas.",
+    "Posso ajudar com qualquer dúvida — programação, arquitetura, história, ciência, o que precisar.",
+    "Me diz o que quer saber e eu respondo com detalhes!",
   ].join("\n");
 }
 
@@ -171,6 +168,21 @@ serve(async (req: Request) => {
     }
 
     if (isLikelyNoiseInput(userText)) {
+      // Still let the LLM handle it instead of returning hardcoded text
+      // Only truly gibberish gets here, so send a short prompt to the LLM
+      const shortMessages = [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userText },
+      ];
+      try {
+        const clarifyAnswer = await callGroq(shortMessages, 300);
+        return new Response(JSON.stringify({ answer: clarifyAnswer }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch {
+        // fallback only if LLM fails
+      }
       return new Response(JSON.stringify({ answer: buildClarifyIntentReply() }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

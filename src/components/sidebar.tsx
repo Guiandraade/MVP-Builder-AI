@@ -24,6 +24,7 @@ function SidebarContent({
     conversations,
     currentConversation,
     createConversation,
+    addMessage,
     setCurrentConversation,
     searchQuery,
     setSearchQuery,
@@ -36,6 +37,12 @@ function SidebarContent({
     try {
       const conv = await createConversation("Novo chat");
       setCurrentConversation(conv);
+      // Welcome message
+      await addMessage(
+        conv.id,
+        "assistant",
+        "Olá! Eu sou o Arquiteto AI, desenvolvido por Guilherme de Andrade. Posso ajudar com qualquer dúvida — programação, arquitetura, produtos, ou o que precisar. Como posso te ajudar?"
+      );
       onMobileClose?.();
     } catch (error) {
       console.error("Error creating conversation:", error);

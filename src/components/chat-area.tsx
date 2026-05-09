@@ -89,8 +89,11 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
     await addMessage(conversation.id, "user", content);
 
     // Snapshot history BEFORE the new user message for AI context
+    // Exclude welcome message from AI history so it doesn't contaminate context
+    const WELCOME_PREFIX = "Olá! Eu sou o Arquiteto AI";
     const history = activeConversationMessages
       .filter((m) => !m.optimistic)
+      .filter((m) => !(m.role === "assistant" && m.content.startsWith(WELCOME_PREFIX)))
       .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
     setIsReplying(true);
