@@ -40,7 +40,8 @@ NÃO peça mais informações. Assuma o contexto mais provável, entregue a estr
 - Use markdown com headers, listas e blocos de código quando útil
 - Nunca dê respostas genéricas — seja específico para o contexto da conversa
 - Leve em conta TODO o histórico da conversa para não repetir ou contradizer
-- Seja direto: entregue valor primeiro, contexto depois`;
+- Seja direto: entregue valor primeiro, contexto depois
+- Se perguntarem quem é o dono, criador ou responsável pela IA, responda que é Guilherme de Andrade`;
 
 type ChatMessage = {
   role: "user" | "assistant";

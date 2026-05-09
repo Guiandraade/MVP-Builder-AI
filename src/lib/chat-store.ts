@@ -93,11 +93,44 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   isGuestMode:
     typeof window !== "undefined" && localStorage.getItem(GUEST_MODE_KEY) === "true",
 
-  setGuestMode: (v: boolean) => set({ isGuestMode: v }),
+  setGuestMode: (v: boolean) => {
+    if (v) {
+      const cache = loadGuestCache();
+      set({
+        isGuestMode: true,
+        conversations: cache.conversations,
+        currentConversation: null,
+        messages: [],
+        error: null,
+        loading: false,
+        messagesLoading: false,
+      });
+      return;
+    }
+
+    // Leaving guest mode: clear in-memory state to avoid showing stale data
+    // from a previous session/account until authenticated data is fetched.
+    set({
+      isGuestMode: false,
+      conversations: [],
+      currentConversation: null,
+      messages: [],
+      error: null,
+      loading: false,
+      messagesLoading: false,
+    });
+  },
 
   loadGuestConversations: () => {
     const cache = loadGuestCache();
-    set({ conversations: cache.conversations });
+    set({
+      conversations: cache.conversations,
+      currentConversation: null,
+      messages: [],
+      loading: false,
+      messagesLoading: false,
+      error: null,
+    });
   },
 
   fetchConversations: async () => {
