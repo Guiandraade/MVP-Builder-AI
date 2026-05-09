@@ -6,6 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const MAX_USER_INPUT_CHARS = 8000;
+const MAX_HISTORY_ITEMS = 30;
+const MAX_HISTORY_MESSAGE_CHARS = 4000;
+
 const SYSTEM_PROMPT = `Você é o Arquiteto AI — um especialista em tecnologia, programação e qualquer tema.
 
 Seu papel é responder QUALQUER pergunta com clareza, profundidade e contexto relevante.
@@ -14,7 +18,7 @@ Se precisar de mais contexto, pergunta no FINAL da resposta (máx 2-3 perguntas 
 
 ## Como você responde
 
-**Quando o usuário descrever uma ideia de produto (mesmo com 1 frase):**
+**Ideias de produto (mesmo com 1 frase):**
 Extraia o máximo de contexto implícito e entregue imediatamente:
 1. **Diagnóstico da ideia** — o que é, para quem, qual problema resolve
 2. **Stack recomendado** — com justificativa técnica (ex: Next.js + Supabase + Vercel)
@@ -22,26 +26,26 @@ Extraia o máximo de contexto implícito e entregue imediatamente:
 4. **Riscos críticos** — 2-3 pontos de atenção técnica ou de negócio
 5. **Próximo passo concreto** — o que fazer nas próximas 48h
 
-**Quando o usuário pedir backlog, tickets ou tarefas:**
+**Backlog, tickets ou tarefas:**
 Gere um backlog priorizado em sprints com tarefas técnicas específicas e acionáveis.
 
-**Quando o usuário pedir modelo de dados ou schema:**
+**Modelo de dados ou schema:**
 Gere o SQL completo com tabelas, RLS e comentários.
 
-**Quando o usuário pedir sobre monetização:**
+**Monetização:**
 Sugira estrutura de planos, preços em BRL, implementação com Stripe e armadilhas comuns.
 
-**Quando o usuário pedir comparação de tecnologias:**
+**Comparação de tecnologias:**
 Compare prós, contras, custo e velocidade de desenvolvimento para o contexto dele.
 
-**Quando a pergunta for sobre programação/código:**
+**Programação / Código:**
 Transforme prompts simples em explicações detalhadas com passos práticos, exemplos de código e erros comuns.
 
-**Quando a pergunta for factual (data, evento, pessoa):**
+**Perguntas factuais (data, evento, pessoa):**
 Responda direto com o fato principal e adicione contexto relevante (causas, consequências, marcos).
 
-**Quando a mensagem for curta ou vaga:**
-NÃO peça mais informações. Assuma o contexto mais provável, entregue resposta completa e ao final pergunte se quer ajustar algum aspecto.
+**Mensagem curta ou vaga:**
+NÃO peça mais informações antes de responder. Assuma o contexto mais provável, entregue resposta completa e ao final pergunte se quer ajustar.
 
 ## Regras absolutas
 - Responda SEMPRE em português do Brasil
@@ -50,6 +54,34 @@ NÃO peça mais informações. Assuma o contexto mais provável, entregue respos
 - Leve em conta TODO o histórico da conversa para não repetir ou contradizer
 - Seja direto: entregue valor primeiro, contexto depois
 - Se perguntarem quem é o dono, criador ou responsável pela IA, responda que é Guilherme de Andrade`;
+
+function isLikelyNoiseInput(input: string): boolean {
+  const text = input.trim().toLowerCase();
+  if (!text) return true;
+  if (text.length <= 2) return true;
+  if (/^(?:[\W_]|\d)+$/.test(text)) return true;
+  if (/^(?:a+|ha+|kk+|rs+|ok+|oi+|hey+|asdf+|qwe+|teste+|hmm+|hmmm+)$/.test(text)) return true;
+
+  const productIntentHint = /app|aplicativo|mvp|saas|produto|sistema|plataforma|site|api|banco|auth|login|pagamento|stripe|arquitetura|stack|roadmap|ticket|backlog|schema|sql|modelo/i;
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length <= 4 && !productIntentHint.test(text)) return true;
+
+  if (words.length <= 2) {
+    const joined = words.join("");
+    if (/^[bcdfghjklmnpqrstvwxyz]{4,}$/i.test(joined)) return true;
+  }
+
+  return false;
+}
+
+function buildClarifyIntentReply(): string {
+  return [
+    "Parece que essa mensagem pode ter sido digitada por engano ou sem contexto suficiente.",
+    "",
+    "Se quiser, me diga em 1 frase o que você quer construir (ex: app, SaaS, marketplace, IA) e eu te devolvo arquitetura + roadmap objetivo.",
+    "Exemplo: Quero um SaaS de agendamentos para clínicas.",
+  ].join("\n");
+}
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -63,6 +95,10 @@ type RequestBody = {
   mode?: "chat" | "title";
   history?: ChatMessage[];
 };
+
+function clampText(text: string, maxChars: number): string {
+  return text.slice(0, maxChars);
+}
 
 function fallbackTitle(userText: string): string {
   const base = userText.split(/[.!?\n]/)[0].trim().replace(/^[#\-*>\s]+/, "");
@@ -118,11 +154,25 @@ serve(async (req: Request) => {
 
   try {
     const body = (await req.json()) as RequestBody;
-    const userText = (body.message || body.input || body.prompt || "").trim();
+    const rawUserText = (body.message || body.input || body.prompt || "").trim();
+    if (rawUserText.length > MAX_USER_INPUT_CHARS) {
+      return new Response(JSON.stringify({ error: `Mensagem muito longa. Limite de ${MAX_USER_INPUT_CHARS} caracteres.` }), {
+        status: 413,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userText = rawUserText;
 
     if (!userText) {
       return new Response(JSON.stringify({ error: "Missing message" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (isLikelyNoiseInput(userText)) {
+      return new Response(JSON.stringify({ answer: buildClarifyIntentReply() }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -151,14 +201,19 @@ serve(async (req: Request) => {
     }
 
     // Build messages with history
-    const history = Array.isArray(body.history) ? body.history : [];
+    const history = (Array.isArray(body.history) ? body.history : [])
+      .slice(-MAX_HISTORY_ITEMS)
+      .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .map((m) => ({ role: m.role, content: clampText(m.content.trim(), MAX_HISTORY_MESSAGE_CHARS) }))
+      .filter((m) => m.content.length > 0);
+
     const messages: { role: string; content: string }[] = [
       { role: "system", content: SYSTEM_PROMPT },
       ...history.map((m) => ({ role: m.role, content: m.content })),
       { role: "user", content: userText },
     ];
 
-    const answer = await callGroq(messages, 1500);
+    const answer = await callGroq(messages, 1200);
 
     return new Response(JSON.stringify({ answer }), {
       status: 200,
