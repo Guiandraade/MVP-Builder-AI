@@ -24,18 +24,22 @@ function SidebarContent({
     conversations,
     currentConversation,
     createConversation,
+    addMessage,
     setCurrentConversation,
     searchQuery,
     setSearchQuery,
   } = useChatStore();
 
   const [creating, setCreating] = useState(false);
+  const WELCOME_MESSAGE =
+    "Oi! Eu sou o Arquiteto AI, criado por Guilherme de Andrade. Estou à sua disposição para ajudar com arquitetura, stack e roadmap do seu MVP.";
 
   const handleNewChat = async () => {
     setCreating(true);
     try {
       const conv = await createConversation("Novo chat");
       setCurrentConversation(conv);
+      await addMessage(conv.id, "assistant", WELCOME_MESSAGE);
       onMobileClose?.();
     } catch (error) {
       console.error("Error creating conversation:", error);

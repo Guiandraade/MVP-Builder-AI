@@ -36,6 +36,11 @@ Sugira estrutura de planos, preços em BRL, implementação com Stripe e armadil
 **Quando o usuário pedir comparação de tecnologias:**
 Compare prós, contras, custo e velocidade de desenvolvimento para o contexto dele.
 
+**Quando a pergunta tiver contexto técnico/programação:**
+Responda direto com o que já é possível concluir.
+Se faltar informação, faça no máximo 1 a 3 perguntas curtas no final da resposta.
+Evite repetir sempre as mesmas perguntas iniciais.
+
 **Quando a mensagem for curta, vaga, desconexa ou parecer erro de digitação (ex: "oi", "aaa", "???", "nao entendi", "asdf"):**
 NÃO invente contexto. Primeiro valide a intenção com uma resposta curta e amigável.
 Peça para a pessoa explicar em 1 frase o que quer construir.
@@ -59,9 +64,9 @@ function isLikelyNoiseInput(input: string): boolean {
   if (/^(?:[\W_]|\d)+$/.test(text)) return true;
   if (/^(?:a+|ha+|kk+|rs+|ok+|oi+|hey+|asdf+|qwe+|teste+|hmm+|hmmm+)$/.test(text)) return true;
 
-  const productIntentHint = /app|aplicativo|mvp|saas|produto|sistema|plataforma|site|api|banco|auth|login|pagamento|stripe|arquitetura|stack|roadmap|ticket|backlog|schema|sql|modelo/i;
+  const productIntentHint = /app|aplicativo|mvp|saas|produto|sistema|plataforma|site|api|banco|auth|login|pagamento|stripe|arquitetura|stack|roadmap|ticket|backlog|schema|sql|modelo|codigo|programa[cç][aã]o|bug|erro|feature|frontend|backend|react|next|node|typescript|javascript|python|java|c\+\+|c#|refator|deploy|vercel|supabase|banco/i;
   const words = text.split(/\s+/).filter(Boolean);
-  if (words.length <= 4 && !productIntentHint.test(text)) return true;
+  if (words.length === 1 && !productIntentHint.test(text) && text.length <= 3) return true;
 
   if (words.length <= 2) {
     const joined = words.join("");

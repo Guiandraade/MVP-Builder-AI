@@ -36,6 +36,8 @@ const STARTER_PROMPTS_POOL = [
   "Como construir um pipeline de dados para analytics no meu produto?",
 ];
 
+const ASSISTANT_WELCOME_PREFIX = "Oi! Eu sou o Arquiteto AI, criado por Guilherme de Andrade.";
+
 function pickRandom<T>(arr: T[], n: number): T[] {
   const shuffled = [...arr].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, n);
@@ -73,6 +75,9 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
     const activeConversationMessages = currentConversationId
       ? messages.filter((m) => m.conversation_id === currentConversationId)
       : [];
+    const effectiveConversationMessages = activeConversationMessages.filter(
+      (m) => !(m.role === "assistant" && m.content.startsWith(ASSISTANT_WELCOME_PREFIX))
+    );
 
     if (!conversation) {
       // Use first line as temp title; will be replaced by auto-title after AI responds
@@ -82,14 +87,14 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
       isFirstMessage = true;
     } else {
       isFirstMessage =
-        activeConversationMessages.filter((m) => !m.optimistic).length === 0;
+        effectiveConversationMessages.filter((m) => !m.optimistic).length === 0;
     }
 
     // Optimistic user message (appears instantly)
     await addMessage(conversation.id, "user", content);
 
     // Snapshot history BEFORE the new user message for AI context
-    const history = activeConversationMessages
+    const history = effectiveConversationMessages
       .filter((m) => !m.optimistic)
       .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 

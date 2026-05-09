@@ -49,9 +49,9 @@ function isLikelyNoiseInput(input: string): boolean {
   if (/^(?:[\W_]|\d)+$/.test(text)) return true;
   if (/^(?:a+|ha+|kk+|rs+|ok+|oi+|hey+|asdf+|qwe+|teste+|hmm+|hmmm+)$/.test(text)) return true;
 
-  const productIntentHint = /app|aplicativo|mvp|saas|produto|sistema|plataforma|site|api|banco|auth|login|pagamento|stripe|arquitetura|stack|roadmap|ticket|backlog|schema|sql|modelo/i;
+  const productIntentHint = /app|aplicativo|mvp|saas|produto|sistema|plataforma|site|api|banco|auth|login|pagamento|stripe|arquitetura|stack|roadmap|ticket|backlog|schema|sql|modelo|codigo|programa[cç][aã]o|bug|erro|feature|frontend|backend|react|next|node|typescript|javascript|python|java|c\+\+|c#|refator|deploy|vercel|supabase|banco/i;
   const words = text.split(/\s+/).filter(Boolean);
-  if (words.length <= 4 && !productIntentHint.test(text)) return true;
+  if (words.length === 1 && !productIntentHint.test(text) && text.length <= 3) return true;
 
   if (words.length <= 2) {
     const joined = words.join("");
@@ -240,9 +240,13 @@ function localConversationalResponse(userInput: string, history: ChatMessage[]):
   }
 
   const assistantTurns = history.filter((m) => m.role === "assistant").length;
+  const contextualHint = /app|aplicativo|mvp|saas|produto|sistema|plataforma|api|auth|login|pagamento|arquitetura|stack|roadmap|bug|erro|feature|frontend|backend|react|next|node|typescript|javascript|python|java|deploy|vercel|supabase|banco|sql|schema|performance|escala/i.test(userInput);
 
-  // First response: always ask clarifying questions
+  // First response: answer with value when there is context, ask only if needed.
   if (assistantTurns === 0) {
+    if (contextualHint || userInput.trim().split(/\s+/).length >= 6) {
+      return buildContextualResponse(userInput, [...history, { role: "user", content: userInput }]);
+    }
     return buildClarifyingResponse(userInput, 0);
   }
 
@@ -252,8 +256,8 @@ function localConversationalResponse(userInput: string, history: ChatMessage[]):
     const totalUserContent = userTurns.map((m) => m.content).join(" ") + " " + userInput;
     const wordCount = totalUserContent.trim().split(/\s+/).length;
 
-    // If user gave a short answer, ask one more round of questions
-    if (wordCount < 40) {
+    // If user gave a very short answer, ask one more round of questions
+    if (wordCount < 18) {
       return buildClarifyingResponse(userInput, 1);
     }
 

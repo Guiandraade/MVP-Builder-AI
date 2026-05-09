@@ -334,12 +334,12 @@ export default function LoginPage() {
       </div>
 
       {/* ── Right login panel ──────────────────────────────────────────── */}
-      <div className="flex w-full flex-col items-center justify-center px-6 py-10 lg:w-[48%]">
+      <div className="flex min-h-dvh w-full flex-col items-center justify-center px-6 py-6 lg:min-h-0 lg:w-[48%] lg:py-10">
         <motion.div
           initial={{ opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: "easeOut" }}
-          className="w-full max-w-sm"
+          className="mx-auto w-full max-w-sm"
         >
           {/* Mobile logo */}
           <div className="mb-8 flex flex-col items-center gap-3 text-center lg:hidden">
