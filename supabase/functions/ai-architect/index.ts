@@ -36,8 +36,13 @@ Sugira estrutura de planos, preços em BRL, implementação com Stripe e armadil
 **Quando o usuário pedir comparação de tecnologias:**
 Compare prós, contras, custo e velocidade de desenvolvimento para o contexto dele.
 
-**Quando a mensagem for curta ou vaga (ex: "quero fazer um app de finanças"):**
-NÃO peça mais informações. Assuma o contexto mais provável, entregue a estratégia completa e ao final pergunte se quer ajustar algum aspecto.
+**Quando a mensagem for curta, vaga, desconexa ou parecer erro de digitação (ex: "oi", "aaa", "???", "nao entendi", "asdf"):**
+NÃO invente contexto. Primeiro valide a intenção com uma resposta curta e amigável.
+Peça para a pessoa explicar em 1 frase o que quer construir.
+Se parecer erro de digitação, diga explicitamente que pode ter sido digitado por engano.
+
+**Quando houver contexto mínimo de produto (ex: "quero fazer um app de finanças"):**
+Aí sim entregue diagnóstico, stack, roadmap e riscos.
 
 ## Regras absolutas
 - Responda SEMPRE em português do Brasil
@@ -46,6 +51,30 @@ NÃO peça mais informações. Assuma o contexto mais provável, entregue a estr
 - Leve em conta TODO o histórico da conversa para não repetir ou contradizer
 - Seja direto: entregue valor primeiro, contexto depois
 - Se perguntarem quem é o dono, criador ou responsável pela IA, responda que é Guilherme de Andrade`;
+
+function isLikelyNoiseInput(input: string): boolean {
+  const text = input.trim().toLowerCase();
+  if (!text) return true;
+  if (text.length <= 2) return true;
+  if (/^(?:[\W_]|\d)+$/.test(text)) return true;
+  if (/^(?:a+|ha+|kk+|rs+|ok+|oi+|hey+|asdf+|qwe+|teste+|hmm+|hmmm+)$/.test(text)) return true;
+
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length <= 2) {
+    const joined = words.join("");
+    if (/^[bcdfghjklmnpqrstvwxyz]{4,}$/i.test(joined)) return true;
+  }
+
+  return false;
+}
+
+function buildClarifyIntentReply(): string {
+  return [
+    "Parece que essa mensagem pode ter sido digitada por engano ou sem contexto suficiente.",
+    "",
+    "Se quiser, me diga em 1 frase o que você quer construir (ex: app, SaaS, marketplace, IA) e eu te devolvo arquitetura + roadmap objetivo.",
+  ].join("\n");
+}
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -134,6 +163,13 @@ serve(async (req: Request) => {
       });
     }
 
+    if (isLikelyNoiseInput(userText)) {
+      return new Response(JSON.stringify({ answer: buildClarifyIntentReply() }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const mode = body.mode === "title" ? "title" : "chat";
 
     if (mode === "title") {
@@ -170,7 +206,7 @@ serve(async (req: Request) => {
       { role: "user", content: userText },
     ];
 
-    const answer = await callGroq(messages, 1500);
+    const answer = await callGroq(messages, 1200);
 
     return new Response(JSON.stringify({ answer }), {
       status: 200,

@@ -52,7 +52,7 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
     >
       <div
         className="mx-auto w-full max-w-3xl px-3 py-3 md:px-4 md:py-4"
-        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <form
           onSubmit={handleSubmit}
