@@ -64,29 +64,6 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
     el.scrollTop = el.scrollHeight;
   }, [messages, isReplying]);
 
-  // On mobile, keyboard open/close changes the visual viewport height.
-  // Keep the latest message visible while viewport is resizing.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    const handleViewportChange = () => {
-      const el = scrollRef.current;
-      if (!el) return;
-      requestAnimationFrame(() => {
-        el.scrollTop = el.scrollHeight;
-      });
-    };
-
-    vv.addEventListener("resize", handleViewportChange);
-    vv.addEventListener("scroll", handleViewportChange);
-    return () => {
-      vv.removeEventListener("resize", handleViewportChange);
-      vv.removeEventListener("scroll", handleViewportChange);
-    };
-  }, []);
-
   const handleSendMessage = async (content: string) => {
     if (!user && !isGuest) return;
 

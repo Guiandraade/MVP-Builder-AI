@@ -33,13 +33,6 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
     setIsLoading(true);
     try {
       await onSend(content);
-
-      if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
-        textareaRef.current?.blur();
-        requestAnimationFrame(() => {
-          window.scrollTo({ top: 0, behavior: "auto" });
-        });
-      }
     } catch (error) {
       console.error("Error sending message:", error);
     } finally {
