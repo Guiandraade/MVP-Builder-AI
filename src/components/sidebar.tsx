@@ -1,24 +1,29 @@
 "use client";
 
-import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
 import { useChatStore } from "@/lib/chat-store";
 import { ConversationList } from "@/components/conversation-list";
 import { Plus, LogOut, Sparkles, Search, X } from "lucide-react";
+import { useState } from "react";
 
 interface SidebarProps {
   mobileOpen?: boolean;
   onMobileClose?: () => void;
 }
 
-export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
+function SidebarContent({
+  onMobileClose,
+  isMobile = false,
+}: {
+  onMobileClose?: () => void;
+  isMobile?: boolean;
+}) {
   const { signOut, user, isGuest } = useAuth();
   const {
     conversations,
     currentConversation,
     createConversation,
-    addMessage,
     setCurrentConversation,
     searchQuery,
     setSearchQuery,
@@ -31,21 +36,12 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     try {
       const conv = await createConversation("Novo chat");
       setCurrentConversation(conv);
-      await addMessage(
-        conv.id,
-        "assistant",
-        "Oi! Eu sou o Arquiteto AI, criado por Guilherme de Andrade. Estou à sua disposição para ajudar com arquitetura, stack e roadmap do seu MVP."
-      );
       onMobileClose?.();
     } catch (error) {
       console.error("Error creating conversation:", error);
     } finally {
       setCreating(false);
     }
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
   };
 
   const handleSelect = (conv: Parameters<typeof setCurrentConversation>[0]) => {
@@ -61,7 +57,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   const userInitial = isGuest ? "V" : (user?.email?.charAt(0).toUpperCase() ?? "U");
 
-  const sidebarContent = (
+  return (
     <div
       className="flex h-full w-64 flex-col border-r"
       style={{
@@ -88,10 +84,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             </div>
           </div>
         </div>
-        {onMobileClose && (
+        {isMobile && onMobileClose && (
           <button
             onClick={onMobileClose}
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg md:hidden"
+            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg"
             style={{ color: "hsl(240 5% 55%)" }}
           >
             <X className="h-4 w-4" />
@@ -172,7 +168,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           </div>
         </div>
         <button
-          onClick={handleSignOut}
+          onClick={() => signOut()}
           className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors"
           style={{ color: "hsl(240 5% 45%)" }}
           title="Sair"
@@ -188,13 +184,17 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       </div>
     </div>
   );
+}
 
+export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   return (
     <>
-      {/* Desktop sidebar */}
-      <div className="hidden md:flex">{sidebarContent}</div>
+      {/* Desktop sidebar — always visible on md+ */}
+      <div className="hidden md:flex">
+        <SidebarContent />
+      </div>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer — only mounts when mobileOpen=true */}
       <AnimatePresence>
         {mobileOpen && (
           <>
@@ -216,7 +216,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
               className="fixed inset-y-0 left-0 z-50 md:hidden"
             >
-              {sidebarContent}
+              <SidebarContent isMobile onMobileClose={onMobileClose} />
             </motion.div>
           </>
         )}
