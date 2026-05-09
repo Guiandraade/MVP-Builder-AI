@@ -18,6 +18,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     conversations,
     currentConversation,
     createConversation,
+    addMessage,
     setCurrentConversation,
     searchQuery,
     setSearchQuery,
@@ -30,6 +31,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     try {
       const conv = await createConversation("Novo chat");
       setCurrentConversation(conv);
+      await addMessage(
+        conv.id,
+        "assistant",
+        "Oi! Eu sou o Arquiteto AI. Me descreva sua ideia e eu monto arquitetura, stack e roadmap para seu MVP."
+      );
       onMobileClose?.();
     } catch (error) {
       console.error("Error creating conversation:", error);

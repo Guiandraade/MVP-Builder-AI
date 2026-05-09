@@ -91,6 +91,11 @@ body {
   min-height: 100dvh;
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
 .glass-panel {
   background: hsl(240 16% 11% / 0.7);
   backdrop-filter: blur(16px);
@@ -130,6 +135,7 @@ body {
 /* Chat scroll area */
 .chat-scroll {
   overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: hsl(240 10% 22%) transparent;
 }
@@ -182,3 +188,22 @@ body {
 .prose-dark strong { color: hsl(240 5% 96%); font-weight: 600; }
 .prose-dark blockquote { border-left: 3px solid hsl(239 84% 67% / 0.5); padding-left: 0.75rem; color: hsl(240 5% 55%); margin: 0.5rem 0; }
 .prose-dark :not(pre) > code { background: hsl(240 14% 14%); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.8rem; }
+
+/* Mobile-safe markdown rendering inside chat */
+.prose-dark {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.prose-dark pre {
+  max-width: 100%;
+}
+
+.prose-dark table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
