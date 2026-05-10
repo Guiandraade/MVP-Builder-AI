@@ -16,6 +16,30 @@ let hasWarnedEdgeUnavailable = false;
 const aiMode = (process.env.NEXT_PUBLIC_AI_MODE ?? "local").toLowerCase();
 const isLocalMode = aiMode !== "remote";
 
+export class ChatServiceUnavailableError extends Error {
+  reason?: string;
+
+  constructor(reason?: string) {
+    super("Serviço de chat indisponível no momento");
+    this.name = "ChatServiceUnavailableError";
+    this.reason = reason;
+  }
+}
+
+export function buildServiceUnavailableMessage(reason?: string): string {
+  if (reason && /rate\s*limit|429|tokens per day|quota|limite/i.test(reason)) {
+    return [
+      "O chat está indisponível neste momento porque o limite de uso da IA foi atingido.",
+      "Tente novamente em alguns minutos.",
+    ].join("\n");
+  }
+
+  return [
+    "O chat está indisponível neste momento por falha de conexão com a IA.",
+    "Tente novamente em alguns minutos.",
+  ].join("\n");
+}
+
 // ---------------------------------------------------------------------------
 // LOCAL CONVERSATIONAL ENGINE
 // ---------------------------------------------------------------------------
@@ -302,8 +326,11 @@ export async function generateAiResponse({
 
   const configuredName = process.env.NEXT_PUBLIC_SUPABASE_AI_FUNCTION ?? "ai-architect";
   const functionCandidates = [configuredName];
+  const errorReasons: string[] = [];
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   for (const functionName of functionCandidates) {
     const { data, error } = await supabase.functions.invoke<GenerateAiResponseOutput>(
@@ -316,15 +343,22 @@ export async function generateAiResponse({
       }
     );
     if (error) {
+      const errorMessage = [error.name, error.message, error.context]
+        .filter((part) => typeof part === "string" && part.trim().length > 0)
+        .join(" | ");
+      if (errorMessage) {
+        errorReasons.push(errorMessage);
+      }
       if (!hasWarnedEdgeUnavailable && process.env.NODE_ENV !== "production") {
-        console.warn(`Edge Function '${functionName}' indisponivel. Usando fallback local.`);
+        console.warn(`Edge Function '${functionName}' indisponivel.`, errorMessage || error);
         hasWarnedEdgeUnavailable = true;
       }
       continue;
     }
     const text = extractText(data);
     if (text) return text;
+    errorReasons.push(`Edge Function '${functionName}' retornou resposta sem texto.`);
   }
 
-  return localConversationalResponse(userInput, history);
+  throw new ChatServiceUnavailableError(errorReasons[0]);
 }

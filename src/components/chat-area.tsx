@@ -7,7 +7,11 @@ import { useChatStore } from "@/lib/chat-store";
 import { ChatMessage } from "@/components/chat-message";
 import { ChatInput } from "@/components/chat-input";
 import { MessageSkeleton } from "@/components/ui/skeleton";
-import { generateAiResponse } from "@/lib/mock-ai";
+import {
+  buildServiceUnavailableMessage,
+  ChatServiceUnavailableError,
+  generateAiResponse,
+} from "@/lib/mock-ai";
 import { generateTitle } from "@/lib/auto-title";
 import { cn } from "@/lib/utils";
 import { Pin, Menu } from "lucide-react";
@@ -113,6 +117,12 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
         const title = await generateTitle(content, conversation.id, token);
         await updateConversationTitle(conversation.id, title);
       }
+    } catch (error) {
+      const isUnavailable = error instanceof ChatServiceUnavailableError;
+      const fallbackMessage = isUnavailable
+        ? buildServiceUnavailableMessage(error.reason)
+        : buildServiceUnavailableMessage();
+      await addMessage(conversation.id, "assistant", fallbackMessage);
     } finally {
       setIsReplying(false);
     }
