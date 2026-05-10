@@ -80,6 +80,13 @@ function buildClarifyIntentReply(): string {
   ].join("\n");
 }
 
+function buildTemporaryUnavailableReply(): string {
+  return [
+    "A IA está temporariamente indisponível no momento.",
+    "Tente novamente em alguns minutos.",
+  ].join("\n");
+}
+
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
@@ -225,7 +232,15 @@ serve(async (req: Request) => {
       { role: "user", content: userText },
     ];
 
-    const answer = await callGroq(messages, 1200);
+    let answer: string;
+    try {
+      answer = await callGroq(messages, 1200);
+    } catch {
+      return new Response(JSON.stringify({ answer: buildTemporaryUnavailableReply() }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     return new Response(JSON.stringify({ answer }), {
       status: 200,

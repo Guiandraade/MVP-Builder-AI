@@ -9,7 +9,6 @@ import { ChatInput } from "@/components/chat-input";
 import { MessageSkeleton } from "@/components/ui/skeleton";
 import {
   buildServiceUnavailableMessage,
-  ChatServiceUnavailableError,
   generateAiResponse,
 } from "@/lib/mock-ai";
 import { generateTitle } from "@/lib/auto-title";
@@ -123,11 +122,8 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
         }
       }
     } catch (error) {
-      const isUnavailable = error instanceof ChatServiceUnavailableError;
-      const fallbackMessage = isUnavailable
-        ? buildServiceUnavailableMessage(error.reason)
-        : buildServiceUnavailableMessage();
-      await addMessage(conversation.id, "assistant", fallbackMessage);
+      console.warn("Falha ao gerar resposta da IA.", error);
+      await addMessage(conversation.id, "assistant", buildServiceUnavailableMessage());
     } finally {
       setIsReplying(false);
     }

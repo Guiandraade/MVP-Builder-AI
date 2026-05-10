@@ -16,65 +16,17 @@ let hasWarnedEdgeUnavailable = false;
 const aiMode = (process.env.NEXT_PUBLIC_AI_MODE ?? "local").toLowerCase();
 const isLocalMode = aiMode !== "remote";
 
-export class ChatServiceUnavailableError extends Error {
-  reason?: string;
-
-  constructor(reason?: string) {
-    super("Serviço de chat indisponível no momento");
-    this.name = "ChatServiceUnavailableError";
-    this.reason = reason;
-  }
-}
-
-function summarizeReason(reason?: string): string | null {
-  if (!reason) return null;
-
-  if (/rate\s*limit|429|tokens per day|quota|limite|rate_limit_exceeded/i.test(reason)) {
-    return "Limite de uso da IA atingido (429/rate limit).";
-  }
-
-  if (/401|403|unauthorized|forbidden|invalid|apikey|api key|jwt|token/i.test(reason)) {
-    return "Falha de autenticacao com o provedor de IA (401/403).";
-  }
-
-  if (/timeout|timed out|abort|aborted|deadline/i.test(reason)) {
-    return "Timeout na comunicacao com o provedor de IA.";
-  }
-
-  if (/network|fetch failed|failed to fetch|dns|econn|enotfound|connection/i.test(reason)) {
-    return "Falha de rede ao chamar o provedor de IA.";
-  }
-
-  if (/5\d\d|internal|unexpected error|server error/i.test(reason)) {
-    return "Erro interno temporario no backend da IA.";
-  }
-
-  return null;
-}
-
-export function buildServiceUnavailableMessage(reason?: string): string {
-  const classifiedReason = summarizeReason(reason);
-
-  if (classifiedReason) {
-    return [
-      "O chat está indisponível neste momento.",
-      `Motivo detectado: ${classifiedReason}`,
-      "Tente novamente em alguns minutos.",
-    ].join("\n");
-  }
-
-  if (reason) {
-    const compactReason = reason.replace(/\s+/g, " ").trim().slice(0, 180);
-    return [
-      "O chat está indisponível neste momento.",
-      `Motivo detectado: ${compactReason}`,
-      "Tente novamente em alguns minutos.",
-    ].join("\n");
-  }
-
+export function buildServiceUnavailableMessage(): string {
   return [
     "O chat está indisponível neste momento.",
-    "Motivo detectado: Falha de conexão com a IA remota.",
+    "Tente novamente em alguns minutos.",
+    "Se o problema continuar, verifique a disponibilidade da IA remota (Groq/Supabase).",
+  ].join("\n");
+}
+
+function buildRemoteAiFallbackReply(): string {
+  return [
+    "No momento a IA está instável e não consegui responder com o modelo remoto.",
     "Tente novamente em alguns minutos.",
   ].join("\n");
 }
@@ -365,7 +317,6 @@ export async function generateAiResponse({
 
   const configuredName = process.env.NEXT_PUBLIC_SUPABASE_AI_FUNCTION ?? "ai-architect";
   const functionCandidates = [configuredName];
-  const errorReasons: string[] = [];
 
   const {
     data: { session },
@@ -385,9 +336,6 @@ export async function generateAiResponse({
       const errorMessage = [error.name, error.message, error.context]
         .filter((part) => typeof part === "string" && part.trim().length > 0)
         .join(" | ");
-      if (errorMessage) {
-        errorReasons.push(errorMessage);
-      }
       if (!hasWarnedEdgeUnavailable && process.env.NODE_ENV !== "production") {
         console.warn(`Edge Function '${functionName}' indisponivel.`, errorMessage || error);
         hasWarnedEdgeUnavailable = true;
@@ -396,8 +344,7 @@ export async function generateAiResponse({
     }
     const text = extractText(data);
     if (text) return text;
-    errorReasons.push(`Edge Function '${functionName}' retornou resposta sem texto.`);
   }
 
-  throw new ChatServiceUnavailableError(errorReasons[0]);
+  return buildRemoteAiFallbackReply();
 }
