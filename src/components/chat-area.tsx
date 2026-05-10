@@ -111,11 +111,16 @@ export function ChatArea({ className, onMenuToggle }: ChatAreaProps) {
 
       // Auto-title after first exchange
       if (isFirstMessage) {
-        const token = user
-          ? (await supabase.auth.getSession()).data.session?.access_token ?? ""
-          : "";
-        const title = await generateTitle(content, conversation.id, token);
-        await updateConversationTitle(conversation.id, title);
+        try {
+          const token = user
+            ? (await supabase.auth.getSession()).data.session?.access_token ?? ""
+            : "";
+          const title = await generateTitle(content, conversation.id, token);
+          await updateConversationTitle(conversation.id, title);
+        } catch (titleError) {
+          // Title generation is non-critical and must not surface as chat outage.
+          console.warn("Falha ao gerar titulo automaticamente.", titleError);
+        }
       }
     } catch (error) {
       const isUnavailable = error instanceof ChatServiceUnavailableError;
