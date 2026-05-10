@@ -24,13 +24,6 @@ export function buildServiceUnavailableMessage(): string {
   ].join("\n");
 }
 
-function buildRemoteAiFallbackReply(): string {
-  return [
-    "No momento a IA está instável e não consegui responder com o modelo remoto.",
-    "Tente novamente em alguns minutos.",
-  ].join("\n");
-}
-
 // ---------------------------------------------------------------------------
 // LOCAL CONVERSATIONAL ENGINE
 // ---------------------------------------------------------------------------
@@ -346,5 +339,6 @@ export async function generateAiResponse({
     if (text) return text;
   }
 
-  return buildRemoteAiFallbackReply();
+  // Keep chat usable even if remote AI is unstable.
+  return localConversationalResponse(userInput, history);
 }
