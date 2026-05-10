@@ -24,6 +24,10 @@ export function buildServiceUnavailableMessage(): string {
   ].join("\n");
 }
 
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // ---------------------------------------------------------------------------
 // LOCAL CONVERSATIONAL ENGINE
 // ---------------------------------------------------------------------------
@@ -315,30 +319,38 @@ export async function generateAiResponse({
     data: { session },
   } = await supabase.auth.getSession();
 
-  for (const functionName of functionCandidates) {
-    const { data, error } = await supabase.functions.invoke<GenerateAiResponseOutput>(
-      functionName,
-      {
-        body: { message: userInput, prompt: userInput, input: userInput, conversationId, history },
-        headers: session?.access_token
-          ? { Authorization: `Bearer ${session.access_token}` }
-          : undefined,
+  const maxAttempts = 2;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    for (const functionName of functionCandidates) {
+      const { data, error } = await supabase.functions.invoke<GenerateAiResponseOutput>(
+        functionName,
+        {
+          body: { message: userInput, prompt: userInput, input: userInput, conversationId, history },
+          headers: session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : undefined,
+        }
+      );
+
+      if (error) {
+        const errorMessage = [error.name, error.message, error.context]
+          .filter((part) => typeof part === "string" && part.trim().length > 0)
+          .join(" | ");
+        if (!hasWarnedEdgeUnavailable && process.env.NODE_ENV !== "production") {
+          console.warn(`Edge Function '${functionName}' indisponivel.`, errorMessage || error);
+          hasWarnedEdgeUnavailable = true;
+        }
+        continue;
       }
-    );
-    if (error) {
-      const errorMessage = [error.name, error.message, error.context]
-        .filter((part) => typeof part === "string" && part.trim().length > 0)
-        .join(" | ");
-      if (!hasWarnedEdgeUnavailable && process.env.NODE_ENV !== "production") {
-        console.warn(`Edge Function '${functionName}' indisponivel.`, errorMessage || error);
-        hasWarnedEdgeUnavailable = true;
-      }
-      continue;
+
+      const text = extractText(data);
+      if (text) return text;
     }
-    const text = extractText(data);
-    if (text) return text;
+
+    if (attempt < maxAttempts) {
+      await wait(250 * attempt);
+    }
   }
 
-  // Keep chat usable even if remote AI is unstable.
-  return localConversationalResponse(userInput, history);
+  return buildServiceUnavailableMessage();
 }
